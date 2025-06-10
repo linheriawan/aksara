@@ -1,0 +1,195 @@
+@import 'tailwindcss';
+
+.grid-1n1{ display: grid; grid-template-rows:auto minmax(0, 1fr) auto; }
+.grid-1n{ display: grid; grid-template-rows:auto minmax(0, 1fr); }
+.grid-n1{ display: grid; grid-template-columns:minmax(0, 1fr) auto; } 
+
+.btn{ 
+    @apply cursor-pointer w-fit h-fit bg-transparent text-center;    
+}
+.btn-hf {
+    @apply cursor-pointer w-full h-fit bg-transparent text-center 
+    py-1 px-2 font-semibold border border-slate-400 hover:text-white hover:bg-blue-700 rounded-md flex items-center gap-1 w-fit;
+}
+.btn-green { 
+    @apply cursor-pointer w-full h-fit bg-transparent text-center 
+    py-1 px-2 font-semibold border border-slate-400 hover:text-white hover:bg-blue-700 rounded-md flex items-center gap-1 w-fit 
+    text-yellow-300 bg-green-500 hover:bg-green-600 border-green-600;
+}
+.btn-slim{width: fit-content;}
+
+a svg, .btn-hf svg {@apply h-6 w-6 }
+.dropdown{ @apply relative;
+  > label {@apply block w-full text-center text-xl p-0}
+  > ul{ @apply hidden absolute p-0 border-l border-r bg-white shadow-lg;
+    > li {@apply border-t cursor-default hover:text-white hover:bg-blue-700}
+  }
+  &.dropdown-end{  
+    > ul{right:0;}
+  }
+  &:hover{
+    > ul {@apply block z-40 }
+  }
+}
+
+.drawer{ @apply border gap-1 bg-slate-500 text-white shadow-lg;
+  &.dropdown ul{@apply relative -m-2 mt-0 bg-slate-200; width: -webkit-fill-available;}
+  > li {@apply border-b hover:bg-white hover:text-black p-0} 
+  > li:has(ul) {@apply flex-wrap; }
+  > li:has(ul) *:nth-child(2) {@apply basis-1/2; }
+  > li:not(:has(>a)) {@apply p-2; }
+  > li:has(>a) { cursor:pointer; }
+}
+@media screen and (max-width: 599px) {
+  .drawer.hidden {display: block;}
+  .drawer:not(.hidden){display: none;}
+}
+.bbar{@apply flex w-full justify-between items-center;}
+.pye-1{ padding-top:.1em;padding-bottom:.1em;}
+
+html {scroll-behavior: smooth;}
+body{position:relative;}
+header{ @apply shadow-lg w-full bg-white;}
+main{ @apply gap-1 z-0;}
+h1{ @apply font-semibold text-2xl;}
+.stroke-black{-webkit-text-stroke: 1px black;}
+li a{@apply block w-full p-1 px-3;}
+li:has(svg), a:has(svg){@apply flex flex-row gap-2;}
+a:has(svg){@apply p-2;}
+
+.modal{ @apply hidden fixed top-0 left-0 bg-slate-900/50 flex flex-col justify-center h-full w-full min-h-full min-w-full overflow-hidden;
+  >*{@apply self-center p-2;}
+  >.content{@apply bg-white w-11/12;}
+  &.show{ @apply flex;}
+}
+
+body.layout-alt{@apply flex flex-row;
+  > nav{ @apply fixed text-xl min-w-fit z-40; height: -webkit-fill-available;
+    > a.nav-head{ @apply shadow-lg bg-slate-200;
+      > svg { @apply inset-x-0; }
+    }
+    >ul, >ul>li{@apply max-w-full;  }
+    > * svg{ @apply w-6 h-6;}
+    * > li.switch, 
+    * > label{@apply grow text-left text-base hidden; }
+
+    &.show li.switch, 
+    &:hover li.switch, 
+    &.show label, 
+    &:hover label{ @apply block; cursor:pointer;  }
+    &.show, &:hover { @apply w-9;
+      > a.nav-head{  
+        > svg {@apply relative right-0 inset-x-4; }
+      }
+      /* transition: width 3s ease-in;
+      -webkit-transition: width 3s ease-in; */
+    }
+    &.show {
+      > a.nav-head{  
+        > svg {
+          > path{fill: #C1C834!important;}
+          > path:first-child{fill: #38d134!important;}
+        }
+      }
+    }
+    
+  }
+  > .inav{@apply min-w-fit;}
+  
+  > main {@apply mt-0; 
+    > *:nth-child(n+2){margin-top:2.5em;}
+    > * .bbar{z-index:2; width:-webkit-fill-available; @apply absolute bg-white flex justify-between items-center px-2 h-10 border-b;}
+    > * .bbar~*{@apply mt-10;}
+  }  
+  > * header{ @apply h-10; width:-webkit-fill-available;
+    > div{ @apply min-h-full; }
+  }
+}
+
+.fField{ display: grid; grid-template-columns:1fr minmax(0, 4fr); gap:.3em; min-height:2em; @apply my-2;
+  >label{ @apply text-slate-500 self-center;}
+  >div{ @apply flex items-center h-max gap-2;
+    > span{ @apply mr-3; }
+  }
+  >textarea,
+  >select,
+  >input[type='text'],
+  >input[type='password'],
+  &[data-type="autocomplete"]>div input,
+  &[data-type="complexs"]>div input,
+  &[data-type="datetime"]>div input,
+  &[data-type="date"]>div input,
+  &[data-type="complexs"]>div label{@apply border-slate-200 border rounded-md h-8 py-0 pl-2 pr-1;}
+  &[data-type="money"]>div input,
+  &[data-type="datetime"]>div input,
+  &[data-type="date"]>div input{text-align: right;}
+  >textarea{@apply h-auto;}
+  >input[type='file']{@apply py-0 h-8;}
+  &[data-type="dropdown"] > div{ 
+    >label{@apply text-left text-base leading-none p-2 pl-1 block border rounded-md;}
+    >label:after{ @apply text-slate-300 hover:text-slate-200;
+      content: "\25be";  float: right; border: none;
+    } 
+  }
+  &[data-type="complexs"] > div,
+  &[data-type="dropdown"] > div,
+  &[data-type="autocomplete"] > div{
+    @apply block relative max-w-full h-full;
+    >*{ @apply w-full; }
+    >input{padding:.2em;height:fit-content;}
+    >ul{ 
+      @apply hidden absolute p-0 border-l border-r bg-white shadow-lg;
+      > li { padding:2px 0;
+        @apply border-t cursor-default hover:text-white hover:bg-blue-700;
+      }
+      > li:has(a:focus) {  @apply text-white bg-blue-700; }
+    }
+  }
+  &[data-type="complexs"] > div{ 
+    >*{ @apply absolute; }
+    >label{@apply p-1 bg-white border cursor-pointer;}
+    >a{@apply -top-2 right-1 w-fit px-1 py-0 hover:bg-slate-200 bg-slate-100 text-blue-500 border text-xs; border-radius: 30%;}    
+  }
+  &[data-type="complexs"] > div:after,
+  &[data-type="autocomplete"] > div:after{ @apply absolute top-1 right-2 text-slate-300 hover:text-slate-200;
+    content: "\2315";  border: none;
+  } 
+}
+
+.DynaTable{  @apply relative border-l border-r h-max overflow-hidden grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  >.DynaHead, >.DynaBody, >.DynaFoot{@apply h-fit w-full}
+  >.DynaHead{@apply items-center top-0 h-10;}
+  >.DynaFoot{@apply bottom-0;}
+  >.DynaHead, 
+  >.DynaFoot { @apply flex justify-between bg-slate-200 px-2;
+    >div{@apply flex items-center gap-1;
+      >a{@apply cursor-pointer p-1 py-0 rounded-md bg-white text-slate-500 hover:bg-blue-700 hover:text-white}
+    }
+  }
+  >.DynaFilt,>.DynaConf{ @apply absolute right-0 block bg-white border-x border-b shadow-lg p-1; 
+    z-index:2; top:2em; bottom:1.6em; display: none; 
+    &.show{ display: block; 
+      animation: slideLeft .2s ease-in-out;
+      animation-fill-mode: forwards;
+      -webkit-animation: slideLeft .2s ease-in-out;
+      -webkit-animation-fill-mode: forwards;
+    }
+  }
+  >.DynaBody{ @apply relative bg-slate-600/20 h-max w-full max-w-full overflow-x-scroll overflow-y-hidden; 
+    > table {@apply relative block min-h-[256px] overflow-y-hidden; 
+      width:-webkit-fill-available; height: -webkit-fill-available;
+      > thead {@apply absolute bg-slate-300 top-0;z-index:1;}
+      > tbody {@apply absolute h-max max-h-full overflow-y-scroll pt-8 bg-white}
+      > tbody tr{@apply cursor-pointer hover:bg-red-300;} 
+      > tbody tr.selected{@apply bg-red-300;}
+      > * tr{display: flex;} 
+      > * th{@apply h-fit;}
+      > * th, 
+      > * td{ @apply border-b whitespace-nowrap text-ellipsis overflow-hidden p-0 w-fit; }
+      > * td{ @apply py-1 px-2;}
+      > * th textarea{border:none; resize: horizontal; height:1.4em; padding:0 0 0 5px; background: transparent}
+    }
+    
+  }
+}
