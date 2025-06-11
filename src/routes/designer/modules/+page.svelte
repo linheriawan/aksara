@@ -1,6 +1,7 @@
 <script lang="ts">
   import Text from '$lib/components/inp/text.svelte';
   import SctForm from '$lib/components/sct/form.svelte';
+  import RightPanel from '$lib/components/sct/rightPanel.svelte';
   import initialRoutesData from '$lib/generated/routes.json';
   import type { MenuItem } from '$lib/types/routes';
 
@@ -61,8 +62,6 @@
         newData[index] = { ...item }; // Update existing root item
       }
     }
-
-    // Reassign the entire routes state with the modified deep copy
     routes = newData;
   }
 
@@ -106,7 +105,15 @@
     manageRouteContent(routes, selectedParentPath, editingIndex, newItem);
     resetForm();
   }
-
+  async function persist() {
+    const res = await fetch('/designer/modules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(routes)
+    });
+    const result = await res.json();
+    console.log(result);
+  }
   
 
   function remove(path: string, index: number) {
@@ -137,10 +144,10 @@
 <SctForm>
   <div slot="pos"><h1>Modules</h1></div>
   <div slot="act">
-    <button class="save-button" on:click={save}>Save</button>
+    <button class="btn-small border rounded-md px-2 hover:bg-blue-300" on:click={persist}>Save</button>
   </div>
 
-  <div class="grid-n1 gap-2 pr-2">
+  <div class="grid-1aa gap-2 overflow-x-hidden">
     <div>
       {#if routes.length === 0}
         <p>No routes defined yet!</p>
@@ -177,8 +184,15 @@
     </div>
 
     <div>
-      <h1>{editingIndex === undefined ? 'Add New Route' : 'Edit Route'}</h1>
-      <div class="border p-2">
+      AAA
+    </div>
+    <RightPanel>
+      
+      <div class="border m-1">
+        <div class="bg-blue-300">
+          <h1>{editingIndex === undefined ? 'Add New Route' : 'Edit Route'}</h1>
+        </div>
+        <div class="p-2">
         <select bind:value={selectedParentPath} class="border px-2 py-1 rounded">
           <option value="">(root)</option>
           {#each availablePaths as path}
@@ -199,7 +213,9 @@
             on:click={resetForm} > Reset
           </button>
         </div>
+        </div>
       </div>
-    </div>
+    </RightPanel>
   </div>
+  
 </SctForm>
