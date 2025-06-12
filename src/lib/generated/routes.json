@@ -1,13 +1,25 @@
 {
   "routes": [
     {
-      "name": "designer",
+      "name": "Designer",
       "path": "designer",
       "icon": "logo",
       "children": [
-        {"name": "Modules",
-        "path": "modules",
-        "icon": "logo"}
+        {
+          "name": "Modules",
+          "path": "designer/modules",
+          "icon": "logo"
+        },
+        {
+          "name": "Data",
+          "path": "designer/data",
+          "icon": "data"
+        },
+        {
+          "name": "Form",
+          "path": "designer/form",
+          "icon": "form"
+        }
       ]
     },
     {

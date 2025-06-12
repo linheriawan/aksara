@@ -2,7 +2,6 @@
   import BasicLayout from '$lib/layouts/basicLayout.svelte';
   import FloatingLayout from '$lib/layouts/floatLayout.svelte';
   import EditorLayout from '$lib/layouts/editorLayout.svelte';
-    
 
   let {data,children}=$props();
   let CurrentLayout = $state<typeof BasicLayout | null>(null);

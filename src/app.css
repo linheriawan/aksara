@@ -2,7 +2,7 @@
 
 .grid-1n1{ display: grid; grid-template-rows:auto minmax(0, 1fr) auto; }
 .grid-1n{ display: grid; grid-template-rows:auto minmax(0, 1fr); }
-.grid-1aa{ display: grid; grid-template-columns:minmax(0, 1fr) auto auto; } 
+.grid-1aa{ display: grid; grid-template-columns:minmax(0, 1fr) auto; } 
 
 .btn{ 
     @apply cursor-pointer w-fit h-fit bg-transparent text-center;    

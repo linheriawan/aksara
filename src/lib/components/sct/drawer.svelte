@@ -3,10 +3,10 @@ import IconRenderer from '$lib/components/icons.svelte';
 import Text from '$lib/components/inp/text.svelte';
 let {items}=$props();
 import { page } from '$app/state';
-let appname = page.url.pathname.split('/')[1];
+let apppath = page.url.pathname.split('/')[1];
 const menus = items.filter( (menu:any) => { 
-    if(appname==""){ return menu; }
-    else{ return menu.name === appname;}
+    if(apppath==""){ return menu; }
+    else{ return menu.path.toLowerCase() === apppath.toLowerCase();}
 });
 let find = $state('');
 let smenu = $state(menus);
@@ -59,7 +59,7 @@ function handleInput(e:Event) {
       <ul class="m-0 pl-2">
         {#each appmenu.menus as child}
             <li>
-                <a href="/{appmenu.path}/{child.path}" class="flex pl-5 pr-2 items-center">
+                <a href="{child.path}" class="flex pl-5 pr-2 items-center">
                     <IconRenderer name={child.icon} style="h-5 w-5" />
                     <div class="flex-1 whitespace-nowrap mx-2 pr-2">{child.name}</div> 
                 </a>

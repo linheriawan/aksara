@@ -1,11 +1,22 @@
 <script lang="ts">
+  import IconRenderer from '$lib/components/icons.svelte';
   import Text from '$lib/components/inp/text.svelte';
+  import Btn from '$lib/components/inp/btn.svelte';
   import SctForm from '$lib/components/sct/form.svelte';
+  import TabNav from '$lib/components/sct/tabnav.svelte';
   import RightPanel from '$lib/components/sct/rightPanel.svelte';
-  import initialRoutesData from '$lib/generated/routes.json';
+
+  const tabs=[{ id: 'modules', label: 'Modules' },
+      { id: 'settings', label: 'Settings' },
+      { id: 'profile', label: 'Profile' }];
+  let currentTab = $state('modules');
+
   import type { MenuItem } from '$lib/types/routes';
+  import initialRoutesData from '$lib/generated/routes.json';
+  import { listPaths, getNodeByPath} from '$lib/utils/route.ts'; 
 
   let routes: MenuItem[] = $state((JSON.parse(JSON.stringify(initialRoutesData))).routes);
+  
   let selectedParentPath = $state('');
   let availablePaths = $state<string[]>([]);
   let editingIndex = $state<number | undefined>(undefined);
@@ -14,114 +25,7 @@
   $effect(() => {
     availablePaths = listPaths(routes);
   });
-
-  // Helper function to find a node by path in a given data structure
-  function getNodeByPath(data: MenuItem[], path: string): MenuItem | undefined {
-    const parts = path.split('/');
-    let currentNodes: MenuItem[] | undefined = data;
-    let foundNode: MenuItem | undefined;
-
-    for (const part of parts) {
-      if (!currentNodes) return undefined; // No children to search in
-      foundNode = currentNodes.find((r) => r.name === part);
-      if (!foundNode) return undefined; // Part not found
-      currentNodes = foundNode.children; // Move to children for next part
-    }
-    return foundNode;
-  }
-
-  // --- MODIFIED FUNCTIONS ---
-
-  function manageRouteContent(data: MenuItem[], parentPath: string, index: number | undefined, item: MenuItem) {
-    // Create a deep copy of the routes data to work on
-    // This ensures Svelte detects all nested changes when `routes` is finally reassigned
-    const newData = JSON.parse(JSON.stringify(data));
-
-    if (parentPath) {
-      // If adding/editing a child, find the parent node in the new data
-      const parent = getNodeByPath(newData, parentPath);
-      if (parent) {
-        // Ensure parent.children array exists
-        if (!parent.children) {
-          parent.children = []; // Initialize if undefined
-        }
-        if (index === undefined) {
-          parent.children.push(item); // Add new child
-        } else {
-          parent.children[index] = { ...item }; // Update existing child
-        }
-      } else {
-        console.warn(`Parent path "${parentPath}" not found. Cannot add/update child.`);
-        return; // Exit if parent not found
-      }
-    } else {
-      // If adding/editing a root level item
-      if (index === undefined) {
-        newData.push(item); // Add new root item
-      } else {
-        newData[index] = { ...item }; // Update existing root item
-      }
-    }
-    routes = newData;
-  }
-
-  function deleteRoute(data: MenuItem[], path: string, index: number) {
-    // Create a deep copy to modify
-    const newData = JSON.parse(JSON.stringify(data));
-
-    if (path) {
-      // If deleting a child, find the parent
-      const parent = getNodeByPath(newData, path);
-      if (parent && parent.children && parent.children[index]) {
-        parent.children.splice(index, 1); // Remove child
-      } else {
-        console.warn(`Could not find parent or child to delete at path "${path}", index ${index}.`);
-        return;
-      }
-    } else {
-      // If deleting a root level item
-      if (newData[index]) {
-        newData.splice(index, 1); // Remove root item
-      }
-    }
-
-    // Reassign the entire routes state with the modified deep copy
-    routes = newData;
-  }
-
-  // --- END MODIFIED FUNCTIONS ---
-
-  function listPaths(routes: MenuItem[], base = ''): string[] {
-    let paths: string[] = [];
-    for (const r of routes) {
-      const fullPath = base ? `${base}/${r.name}` : r.name;
-      paths.push(fullPath);
-      if (r.children) paths = paths.concat(listPaths(r.children, fullPath));
-    }
-    return paths;
-  }
-
-  function save() {
-    manageRouteContent(routes, selectedParentPath, editingIndex, newItem);
-    resetForm();
-  }
-  async function persist() {
-    const res = await fetch('/designer/modules', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(routes)
-    });
-    const result = await res.json();
-    console.log(result);
-  }
   
-
-  function remove(path: string, index: number) {
-    deleteRoute(routes, path, index);
-    if (editingIndex === index && selectedParentPath === path) {
-      resetForm();
-    }
-  }
 
   function selectItemForEdit(path: string, index: number) {
     const parent = path ? getNodeByPath(routes, path) : undefined;
@@ -139,16 +43,79 @@
     editingIndex = undefined;
     selectedParentPath = '';
   }
+
+  function remove(path: string, index: number) {
+    const newData = JSON.parse(JSON.stringify(routes));
+    if (path) {
+      // If deleting a child, find the parent
+      const parent = getNodeByPath(newData, path);
+      if (parent && parent.children && parent.children[index]) {
+        parent.children.splice(index, 1); // Remove child
+      } else {
+        console.warn(`Could not find parent or child to delete at path "${path}", index ${index}.`);
+        return;
+      }
+    } else {
+      // If deleting a root level item
+      if (newData[index]) { newData.splice(index, 1);  }
+    }
+    routes = newData;
+    if (editingIndex === index && selectedParentPath === path) {
+      resetForm();
+    }
+  }
+  function save() {
+    // Create a deep copy of the routes data to work on
+    // This ensures Svelte detects all nested changes when `routes` is finally reassigned
+    const newData = JSON.parse(JSON.stringify(routes));
+
+    if (selectedParentPath) {
+      // If adding/editing a child, find the parent node in the new data
+      const parent = getNodeByPath(newData, selectedParentPath);
+      if (parent) {
+        // Ensure parent.children array exists
+        if (!parent.children) { parent.children = []; // Initialize if undefined
+        }
+        if (editingIndex === undefined) { parent.children.push(newItem); // Add new child
+        } else {
+          parent.children[editingIndex] = { ...newItem }; // Update existing child
+        }
+      } else {
+        console.warn(`Parent path "${selectedParentPath}" not found. Cannot add/update child.`);
+        return; // Exit if parent not found
+      }
+    } else {
+      if (editingIndex === undefined) {
+        newData.push(newItem); // Add new root item
+      } else {
+        newData[editingIndex] = { ...newItem }; // Update existing root item
+      }
+    }
+    routes = newData;
+    resetForm();
+  }
+  async function persist() {
+    const res = await fetch('/designer/modules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({"routes":routes})
+    });
+    const result = await res.json();
+    console.log(result);
+  }
 </script>
 
 <SctForm>
-  <div slot="pos"><h1>Modules</h1></div>
+  <svelte:fragment slot="pos">
+    <TabNav {tabs} current={currentTab} onSelect={(id) => currentTab = id} />
+  </svelte:fragment>
   <div slot="act">
     <button class="btn-small border rounded-md px-2 hover:bg-blue-300" on:click={persist}>Save</button>
   </div>
 
   <div class="grid-1aa gap-2 overflow-x-hidden">
     <div>
+    {#if currentTab === 'modules'}
       {#if routes.length === 0}
         <p>No routes defined yet!</p>
       {:else}
@@ -158,7 +125,7 @@
               on:click={() => selectItemForEdit('', pIndex)} >
               <div>name: {parentRoute.name}</div>
               <div>path: {parentRoute.path}</div>
-              <div>icon: {parentRoute.icon}</div>
+              <div>icon: <IconRenderer name={parentRoute.icon}/></div>
               <div class="flex justify-end">
                 <span class="transform transition-transform duration-300 group-open:rotate-180">▼</span>
               </div>
@@ -169,7 +136,7 @@
                   on:click={() => selectItemForEdit(parentRoute.name, cIndex)} >
                   <div>name: {childRoute.name}</div>
                   <div>path: {childRoute.path}</div>
-                  <div>icon: {childRoute.icon}</div>
+                  <div>icon: <IconRenderer name={childRoute.icon}/></div>
                   <button class="text-red-500" on:click|stopPropagation={() => remove(parentRoute.name, cIndex)}>
                     Delete
                   </button>
@@ -181,13 +148,15 @@
           </details>
         {/each}
       {/if}
+    {:else if currentTab === 'settings'}
+      <div>Settings Content</div>
+    {:else if currentTab === 'profile'}
+      <h2 class="text-xl font-semibold mb-2">Profile</h2>
+      <p>This is your profile tab.</p>
+    {/if}
     </div>
-
-    <div>
-      AAA
-    </div>
+    
     <RightPanel>
-      
       <div class="border m-1">
         <div class="bg-blue-300">
           <h1>{editingIndex === undefined ? 'Add New Route' : 'Edit Route'}</h1>
@@ -199,19 +168,13 @@
             <option value={path}>{path}</option>
           {/each}
         </select>
-
         <Text id="new_name" name="name" label="Name" bind:value={newItem.name} />
         <Text id="new_path" name="path" label="Path" bind:value={newItem.path} />
         <Text id="new_icon" name="icon" label="SVG Icon" bind:value={newItem.icon} />
 
         <div class="mt-2 flex gap-2">
-          <button class="btn-slim btn-hf !bg-green-300 hover:!bg-blue-300 cursor-pointer"
-            on:click={save} >
-            {editingIndex === undefined ? 'Add' : 'Update'}
-          </button>
-          <button class="btn-slim btn-hf !bg-gray-300 hover:!bg-gray-400 cursor-pointer"
-            on:click={resetForm} > Reset
-          </button>
+          <Btn style="!bg-green-300 hover:!bg-blue-300" clicks={save} label={editingIndex === undefined ? 'Add' : 'Update'}/>
+          <Btn style="!bg-gray-300 hover:!bg-gray-400" clicks={resetForm} label="Reset" />
         </div>
         </div>
       </div>
