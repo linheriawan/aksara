@@ -11,7 +11,7 @@ function logout(){
     // router.push("/");
 }
 let { headerLogoClick,appModal, appinfo } = $props();
-let acts={cssClass:"z-10", name:appinfo.user,
+let acts={style:"z-10", name:appinfo.user,
     items:[
         {txt:"app",action:appModal},
         {txt:"Preference",href:"/"},

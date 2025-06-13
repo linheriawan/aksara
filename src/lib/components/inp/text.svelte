@@ -6,7 +6,6 @@ let {id,name,label,value= $bindable(''),keyup}:{
     value:string;
     keyup?:(e:Event)=>void;
 }=$props();
-
 </script>
  <div class='fField'> 
     {#if label}
