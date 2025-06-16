@@ -7,7 +7,8 @@
   import Datetime  from '$lib/components/inp/datetime.svelte';
   import Select  from '$lib/components/inp/select.svelte';
   import Dynagrid  from '$lib/components/sct/dynagrid.svelte';
-  import obja from '$lib/generated/cars.json';
+  import { notificationManager, notificationsStore } from '$lib/stores/notif';
+  import obja from '$lib/generated/girls.json';
   // let obja=[
   //   {id:"anna",name:"Ana",desc:"tall"},
   //   {id:"rach",name:"Rachel",desc:"cute"},
@@ -15,24 +16,37 @@
   //   {id:"donna",name:"Donna",desc:"beauty"},
   //   {id:"bella",name:"Bella",desc:"preety"}
   // ]
-  function handleRowClick(x){
+  function handleRowClick(x:any){
     console.log(x)
   }
   let lval=obja.map(o=>({value:o.id,label:`${o.make} ${o.model}`}));
   let myval=$state('');
 </script>
 <Dynagrid
-  page={1}
   data={obja}
-  totalrows={1000}
-  title="User Table"
+  title="client Girls"
   rowclick={handleRowClick}
-  show={10}
-  filter={true}
-  conf={true}/>
+  show={{page:10,filter:true,conf:true}} />
+<Dynagrid
+  data={{apiurl:"http://localhost:5173/api/mock/cars"}}
+  title="server Cars"
+  rowclick={handleRowClick}
+  show={{page:10,filter:true,conf:true}} />
 <div class="grid grid-rows-1 gap-2">
-  <div class="border border-sky-300"> 
-    <Btn label="id= {myval}" />
+  <div class="border border-sky-300 flex"> 
+    <Btn label="id= {myval}" clicks={()=>{
+      notificationManager.flash('This is a flash message!', 5000);
+      // CORRECTED LINE: Use $notificationsStore to log the current state of the actual store
+      console.log('nman flash current store state:', $notificationsStore);
+      }} />
+    <Btn label="{myval} stack 1" clicks={()=>{notificationManager.stack('New information!', 'info'); }}/>
+    <Btn label="{myval} stack 2" clicks={()=>{notificationManager.stack('New information available!', 'error', 7000); }}/>
+    <Btn label="{myval} start" clicks={()=>{notificationManager.sync('Syncing data...', 'load'); }}/>
+    <Btn label="{myval} progress"  clicks={()=>{notificationManager.sync('Data synced: 50% complete...', 'load'); }}/>
+    <Btn label="{myval} end" clicks={()=>{
+      notificationManager.sync('Syncing data...', 'load'); 
+      
+    }} />
   </div>
   <div class="border border-slate-600">
     <Inp type="text" label="text" name="t-form" bind:value={myval} />

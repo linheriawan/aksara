@@ -9,7 +9,6 @@ import SctMenus from '$lib/components/sct/menus.svelte';
 
 const toggle=(x:string,y:string)=>{ PnM(`.${x}`).toggle(y) }
 let {modules,info,children}=$props();
-
 </script>
 
 <div class="grid-1n1 h-screen">

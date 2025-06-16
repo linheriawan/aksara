@@ -58,6 +58,11 @@
           "icon": "user"
         }
       ]
+    },
+    {
+      "name": "account",
+      "path": "acc",
+      "icon": "flash"
     }
   ]
 }

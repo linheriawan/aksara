@@ -51,7 +51,7 @@ function handleInput(e:Event) {
 <div class="h-fit px-2">
 <Text id="search_menu" name="find" label="find" keyup={handleInput} bind:value={find} />
 {#each appmenus as appmenu}
-    <a href="/{appmenu.path}" class="flex pl-1 pr-4 items-center" class:dynamic={appmenu.isDynamic}>
+    <a href={appmenu.path} class="flex pl-1 pr-4 items-center" class:dynamic={appmenu.isDynamic}>
         <IconRenderer name={appmenu.icon} style="h-5 w-5" />
         <div class="flex-1 whitespace-nowrap mx-2 pr-2">{appmenu.name}</div> 
     </a>
@@ -59,7 +59,7 @@ function handleInput(e:Event) {
       <ul class="m-0 pl-2">
         {#each appmenu.menus as child}
             <li>
-                <a href="{child.path}" class="flex pl-5 pr-2 items-center">
+                <a href="../{child.path}" class="flex pl-5 pr-2 items-center">
                     <IconRenderer name={child.icon} style="h-5 w-5" />
                     <div class="flex-1 whitespace-nowrap mx-2 pr-2">{child.name}</div> 
                 </a>
