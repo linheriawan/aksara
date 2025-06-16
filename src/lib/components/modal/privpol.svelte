@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts">
 const company="PT Angkasa Pura Logistik";
 const app_name="My App Name"
 </script>
@@ -10,8 +10,8 @@ const app_name="My App Name"
         </div>
         <div class="h-full overflow-scroll py-4">
             <div class="grid grid-cols-2 mt-2">
-                <div>Our Privacy Policy is designed to inform you about the data we collect, how it's used, and your rights concerning your personal information. By using our {{app_name}} Software, you agree to the terms outlined in this Privacy Policy.</div>
-                <div>Kebijakan Privasi ini dirancang dengan itikad baik dan profesionalisme untuk memberikan gambaran yang jelas dan transparan tentang bagaimana kami mengumpulkan, menggunakan, dan melindungi data pribadi Anda. Dengan menggunakan Aplikasi {{app_name}} kami, Anda memberikan persetujuan penuh Anda terhadap praktik yang dijelaskan dalam Kebijakan Privasi ini.</div>
+                <div>Our Privacy Policy is designed to inform you about the data we collect, how it's used, and your rights concerning your personal information. By using our {app_name} Software, you agree to the terms outlined in this Privacy Policy.</div>
+                <div>Kebijakan Privasi ini dirancang dengan itikad baik dan profesionalisme untuk memberikan gambaran yang jelas dan transparan tentang bagaimana kami mengumpulkan, menggunakan, dan melindungi data pribadi Anda. Dengan menggunakan Aplikasi {app_name} kami, Anda memberikan persetujuan penuh Anda terhadap praktik yang dijelaskan dalam Kebijakan Privasi ini.</div>
             </div>
             <ol class="list-decimal">
                 <li class="grid grid-cols-2">

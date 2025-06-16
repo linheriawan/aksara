@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts">
 const company="PT Angkasa Pura Logistik";
 const app_name="My App Name"
 const jurisdiction="'Negara Republik Indonesia'"
@@ -12,8 +12,8 @@ const court="'Pengadilan Negri Jakarta Pusat'"
     </div>
     <div class="h-full overflow-scroll py-4">
         <div class="grid grid-cols-2 mt-2">
-            <div> This End User License Agreement ("Agreement") outlines the terms and conditions between you ("User") and {{company}} ("Company") for the use of the {{app_name}} ("Software"). By installing, accessing, or using the Software, you acknowledge your understanding and agreement to comply with the terms set forth in this Agreement. </div>
-            <div> Perjanjian Lisensi Pengguna Akhir ("Perjanjian") ini menguraikan dengan cermat dan tegas syarat dan ketentuan yang mengatur hubungan antara Anda ("Pengguna") dan {{ company }} ("Perusahaan") dalam konteks penggunaan {{app_name}} ("Aplikasi"). Dalam menginstal, mengakses, atau menggunakan Aplikasi ini, Anda dengan penuh kesadaran mengakui dan menyetujui sepenuhnya untuk patuh dan tunduk kepada setiap ketentuan yang tercantum dalam Perjanjian ini. </div>
+            <div> This End User License Agreement ("Agreement") outlines the terms and conditions between you ("User") and {company} ("Company") for the use of the {app_name} ("Software"). By installing, accessing, or using the Software, you acknowledge your understanding and agreement to comply with the terms set forth in this Agreement. </div>
+            <div> Perjanjian Lisensi Pengguna Akhir ("Perjanjian") ini menguraikan dengan cermat dan tegas syarat dan ketentuan yang mengatur hubungan antara Anda ("Pengguna") dan {{ company }} ("Perusahaan") dalam konteks penggunaan {app_name} ("Aplikasi"). Dalam menginstal, mengakses, atau menggunakan Aplikasi ini, Anda dengan penuh kesadaran mengakui dan menyetujui sepenuhnya untuk patuh dan tunduk kepada setiap ketentuan yang tercantum dalam Perjanjian ini. </div>
         </div>
         <ol class="list-decimal">
             <li class="grid grid-cols-2">
@@ -41,8 +41,8 @@ const court="'Pengadilan Negri Jakarta Pusat'"
                 <div><h1>Penghentian:</h1> Perusahaan dengan tegas mempertahankan hak untuk menghentikan akses Anda ke Aplikasi dalam hal terjadi pelanggaran terhadap syarat dan ketentuan yang tertera dalam Perjanjian ini. Keputusan tersebut akan diambil dengan itikad baik dan berdasarkan pertimbangan yang cermat.</div>
             </li>
             <li class="grid grid-cols-2">
-                <div><h1>Governing Law:</h1> This Agreement shall be governed by and interpreted in accordance with the laws of {{jurisdiction}}. Any disputes arising from this Agreement shall be subject to the exclusive jurisdiction of the courts in {{ court }}.</div>
-                <div><h1>Hukum yang Berlaku:</h1> Dalam hal terjadi sengketa yang timbul dari atau terkait dengan Perjanjian ini, Anda setuju bahwa hukum dan yurisdiksi yang berlaku adalah hukum {{ jurisdiction }}. Semua perselisihan akan diselesaikan di pengadilan {{ court }}.</div>
+                <div><h1>Governing Law:</h1> This Agreement shall be governed by and interpreted in accordance with the laws of {jurisdiction}. Any disputes arising from this Agreement shall be subject to the exclusive jurisdiction of the courts in {court}.</div>
+                <div><h1>Hukum yang Berlaku:</h1> Dalam hal terjadi sengketa yang timbul dari atau terkait dengan Perjanjian ini, Anda setuju bahwa hukum dan yurisdiksi yang berlaku adalah hukum {jurisdiction}. Semua perselisihan akan diselesaikan di pengadilan {court}.</div>
             </li>
         </ol>
     </div>

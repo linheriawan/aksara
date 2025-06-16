@@ -1,5 +1,5 @@
 <script lang="ts"> 
-let {id,name,label,value= $bindable(''),change,items}:{
+let {id,name,label,value= $bindable(''),items,change}:{
     id:string;
     name:string;
     label?:string;
