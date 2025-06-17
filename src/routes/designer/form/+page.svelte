@@ -1,71 +1,100 @@
 <script lang="ts">
-  import Inp  from '$lib/components/inp.svelte';
-  import Pass  from '$lib/components/inp/pass.svelte';
-  import Btn  from '$lib/components/inp/btn.svelte';
-  import Complex  from '$lib/components/inp/complex.svelte';
-  import Auto  from '$lib/components/inp/autocomplete.svelte';
-  import Datetime  from '$lib/components/inp/datetime.svelte';
-  import Select  from '$lib/components/inp/select.svelte';
-  import Dynagrid  from '$lib/components/sct/dynagrid.svelte';
-  import { notificationManager, notificationsStore } from '$lib/stores/notif';
-  import obja from '$lib/generated/girls.json';
-  // let obja=[
-  //   {id:"anna",name:"Ana",desc:"tall"},
-  //   {id:"rach",name:"Rachel",desc:"cute"},
-  //   {id:"sara",name:"Sara",desc:"preety"},
-  //   {id:"donna",name:"Donna",desc:"beauty"},
-  //   {id:"bella",name:"Bella",desc:"preety"}
-  // ]
-  function handleRowClick(x:any){
-    console.log(x)
-  }
-  let lval=obja.map(o=>({value:o.id,label:`${o.make} ${o.model}`}));
-  let myval=$state('');
-</script>
-<Dynagrid
-  data={obja}
-  title="client Girls"
-  rowclick={handleRowClick}
-  show={{page:10,filter:true,conf:true}} />
-<Dynagrid
-  data={{apiurl:"http://localhost:5173/api/mock/cars"}}
-  title="server Cars"
-  rowclick={handleRowClick}
-  show={{page:10,filter:true,conf:true}} />
-<div class="grid grid-rows-1 gap-2">
-  <div class="border border-sky-300 flex"> 
-    <Btn label="id= {myval}" clicks={()=>{
-      notificationManager.flash('This is a flash message!', 5000);
-      // CORRECTED LINE: Use $notificationsStore to log the current state of the actual store
-      console.log('nman flash current store state:', $notificationsStore);
-      }} />
-    <Btn label="{myval} stack 1" clicks={()=>{notificationManager.stack('New information!', 'info'); }}/>
-    <Btn label="{myval} stack 2" clicks={()=>{notificationManager.stack('New information available!', 'error', 7000); }}/>
-    <Btn label="{myval} start" clicks={()=>{notificationManager.sync('Syncing data...', 'load'); }}/>
-    <Btn label="{myval} progress"  clicks={()=>{notificationManager.sync('Data synced: 50% complete...', 'load'); }}/>
-    <Btn label="{myval} end" clicks={()=>{
-      notificationManager.sync('Syncing data...', 'load'); 
-      
-    }} />
-  </div>
-  <div class="border border-slate-600">
-    <Inp type="text" label="text" name="t-form" bind:value={myval} />
-  </div>
-  <div class="border border-sky-300">
-    <Inp type="pass" label="Password" name="p-form" bind:value={myval} />
-  </div>
-  <div class="border border-red-300">
-    <Select label="Select" name="s-form" bind:value={myval} items={lval} />
-  </div>
-  <div class="border border-green-300">
-    <Datetime label="Date" name="d-form" value="2025-01-01 10:10:00"/>
-  </div>
-  <div class="border border-yellow-300">
-    <Auto label="Autocomplete" name="a-form" bind:value={myval} items={(obja.map(o=>({value:o.id,label:o.model})))} />
-  </div>
-  <div class="border border-blue-300">
-    <Complex label="complex" name="c-form" bind:value={myval} items={(obja.map(o=>({value:o.id,label:o.model})))} />
-  </div>
-  
+type FormElement = {
+  type: 'Inp' | 'Select' | 'SctForm';
+  props: Record<string, any>;
+  children?: FormElement[];
+};
+import { writable } from 'svelte/store';
+let schema = writable<FormElement[]>([]);
+export const selectedIndex = writable<number | null>(null);
+import Inp from '$lib/components/inp/text.svelte';
+import Select from '$lib/components/inp/select.svelte';
+import SctForm from '$lib/components/sct/form.svelte';
 
+function getComponent(type: string) {
+  switch (type) {
+    case 'Inp': return Inp;
+    case 'Select': return Select;
+    case 'SctForm': return SctForm;
+  }
+}
+function addElement(type: FormElement['type']) {
+  schema.update(s => [...s, { type, props: {}, children: [] }]);
+}
+function renderSvelteCode(schema: FormElement[], indent = 0): string {
+  const pad = '  '.repeat(indent);
+  return schema.map((node) => {
+    const { type, props = {}, children = [] } = node;
+    const propStr = Object.entries(props)
+      .map(([key, value]) =>
+        typeof value === 'string'
+          ? `${key}="${value}"`
+          : `{${JSON.stringify(value)}}`
+      )
+      .join(' ');
+
+    const openTag = `<${type} ${propStr}>`;
+    const closeTag = `</${type}>`;
+
+    if (children.length > 0) {
+      return `${pad}${openTag}\n${renderSvelteCode(children, indent + 1)}\n${pad}${closeTag}`;
+    } else {
+      return `${pad}${openTag}${closeTag}`;
+    }
+  }).join('\n');
+}
+export function toYAML(obj: any, indent = 0): string {
+  const pad = '  '.repeat(indent);
+  if (Array.isArray(obj)) {
+    return obj.map(item => `${pad}- ${typeof item === 'object' ? '\n' + toYAML(item, indent + 1) : item}`).join('\n');
+  } else if (typeof obj === 'object' && obj !== null) {
+    return Object.entries(obj).map(([key, value]) => {
+      if (typeof value === 'object' && value !== null) {
+        return `${pad}${key}:\n${toYAML(value, indent + 1)}`;
+      } else {
+        return `${pad}${key}: ${JSON.stringify(value)}`;
+      }
+    }).join('\n');
+  } else {
+    return `${pad}${JSON.stringify(obj)}`;
+  }
+}
+
+</script>
+<div class="grid gap-2" style="grid-template-columns:1fr 3fr 6fr 4fr">
+  <!-- Palette -->
+  <div class="grid border gap-1 p-2">
+    <button class="border" on:click={() => addElement('Inp')}>Input</button>
+    <button class="border" on:click={() => addElement('Select')}>Select</button>
+  </div>
+  <!-- Schema -->
+  <div class="grid border p-2"> {toYAML($schema)} </div>
+  <!-- Form Canvas -->
+  <div class="grid border">
+    {#each $schema as node, i}
+      <div class="border p-1" on:click={() => selectedIndex.set(i)}>
+        <svelte:component this={getComponent(node.type)} {...node.props} />
+      </div>
+    {/each}
+  </div>
+  <!-- Code tab (optional) -->
+  <div class="grid border p-2"> <pre>{renderSvelteCode($schema)}</pre> </div>
 </div>
+<!-- Bottom-left or sidebar -->
+{#if $selectedIndex !== null}
+  <div class="grid border p-2 gap-1">
+    <h4 class="font-bold">Edit {$schema[$selectedIndex].type}</h4>
+    {#each Object.keys($schema[$selectedIndex].props) as key}
+      <label class="text-xs">
+        {key}
+        <input
+          class="border px-1"
+          type="text"
+          bind:value={$schema[$selectedIndex].props[key]}
+        />
+      </label>
+    {/each}
+    <!-- Optional: add new property -->
+    <button on:click={() => $schema[$selectedIndex].props['newProp'] = ''}>+ Prop</button>
+  </div>
+{/if}

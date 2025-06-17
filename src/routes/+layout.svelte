@@ -1,13 +1,10 @@
 <script lang="ts">
-  import { notificationsStore } from '$lib/stores/notif'; // Import the store
-  import type { Notification } from '$lib/stores/notif'; // Import the type for TypeScript safety
-  import FlashNotification from '$lib/components/notif_flash.svelte';
-  import StackedNotification from '$lib/components/notif_stack.svelte';
-  import SyncNotification from '$lib/components/notif_sync.svelte';
-  let activeNotifications:Notification[] = $state([]);
+  import Notify from '$lib/components/notif.svelte';
+  import { wrt } from '$lib/stores/notif'; 
+  import type { Notification } from '$lib/stores/notif'; 
+  let anot:Notification[] = $state([]);
   $effect(() => {
-    const unsub = notificationsStore.subscribe(val => activeNotifications = val);
-    return unsub;
+    return wrt.subscribe(val => anot = val);
   });
 
   import BasicLayout from '$lib/layouts/basicLayout.svelte';
@@ -37,13 +34,4 @@
   {@render children()}
 {/if}
 
-
-{#each activeNotifications as notif (notif.id)}
-  {#if notif.type === 'flash'}
-    <FlashNotification id={notif.id} message={notif.message} duration={notif.duration} />
-  {:else if notif.type === 'stack'}
-    <StackedNotification id={notif.id} message={notif.message} status={notif.status} duration={notif.duration} />
-  {:else if notif.type === 'sync'}
-    <SyncNotification id={notif.id} message={notif.message} status={notif.status} />
-  {/if}
-{/each}
+<Notify data={anot} />

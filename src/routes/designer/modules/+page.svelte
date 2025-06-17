@@ -113,7 +113,7 @@
     <button class="btn-small border rounded-md px-2 hover:bg-blue-300" on:click={persist}>Save</button>
   </div>
 
-  <div class="grid-1aa gap-2 overflow-x-hidden">
+  <div class="h-full grid-1aa gap-2 overflow-x-hidden">
     <div>
     {#if currentTab === 'modules'}
       {#if routes.length === 0}
