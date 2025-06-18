@@ -1,11 +1,11 @@
 <script lang="ts">
-  let isPinned = false;
-  let isVisible = false;
-  let width = 260;
-  let isResizing=false;
+let {isPinned=false as boolean,width = 260 as number, name="Panel"}=$props();
+let isVisible = $state(isPinned);
+let isResizing=$state(false);
   function togglePin() { isPinned = !isPinned; isVisible = isPinned; }
   function togglePanel() { isVisible = !isVisible; }
   function onMouseDown(event: MouseEvent) {
+    event.preventDefault();
     isResizing = true;
     const startX = event.clientX;
     const startWidth = width;
@@ -29,14 +29,14 @@
 </style>
 
 <div class="relative h-full">
-  <aside class="bg-gray-200 shadow-xl z-40 h-full
+  <aside class="top-0 left-0 shadow-xl z-40 h-full bg-white
       {isPinned ? 'relative' : 'absolute floating-panel'}"
-    style="width: {width}px; top: 0; right: 0;
+    style="width:{width}px;
       transform: translateX({!isPinned && !isVisible ? `${width}px` : '0'});"
     on:mouseenter={() => !isPinned && (isVisible = true)}
     on:mouseleave={() => !isPinned && (isVisible = false)} >
     <div class="flex justify-between items-center text-sm text-white bg-gray-600 px-2">
-      <h2 class="font-semibold">Panel</h2>
+      <h2 class="font-semibold">{name}</h2>
       <div>
         <button on:click={togglePin} class="" title={isPinned ? "Unpin" : "Pin"}>
         {isPinned ? '📍' : '📌'}

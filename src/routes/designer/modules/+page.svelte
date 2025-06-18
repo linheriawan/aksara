@@ -4,7 +4,7 @@
   import Btn from '$lib/components/inp/btn.svelte';
   import SctForm from '$lib/components/sct/form.svelte';
   import TabNav from '$lib/components/sct/tabnav.svelte';
-  import RightPanel from '$lib/components/sct/rightPanel.svelte';
+  import RightPanel from '$lib/components/sct/panelRight.svelte';
 
   const tabs=[{ id: 'modules', label: 'Modules' },
       { id: 'settings', label: 'Settings' },

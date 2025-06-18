@@ -1,0 +1,22 @@
+{
+"Inp": {
+  "id": "string",
+  "name": "string",
+  "children": [] 
+},
+"Sct": {
+  "nchild": [
+    {
+      "slot": "string",
+      "child": [],
+      "fragment": "boolean"
+    }
+  ],
+  "children": []
+},
+"Select": {
+  "name": "string",
+  "data": [],
+  "children": [] 
+}
+}
