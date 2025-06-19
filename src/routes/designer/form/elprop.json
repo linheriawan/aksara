@@ -1,22 +1,22 @@
 {
 "Inp": {
   "id": "string",
-  "name": "string",
-  "children": [] 
+  "label": "string",
+  "name": "string"
 },
 "Sct": {
-  "nchild": [
+  "nesting": [
     {
       "slot": "string",
       "child": [],
       "fragment": "boolean"
     }
-  ],
-  "children": []
+  ]
 },
 "Select": {
+  "id": "string",
+  "label": "string",
   "name": "string",
-  "data": [],
-  "children": [] 
+  "data": []
 }
 }

@@ -16,14 +16,14 @@
           "icon": "data"
         },
         {
-          "name": "Component",
-          "path": "designer/component",
-          "icon": "logo"
-        },
-        {
           "name": "Form",
           "path": "designer/form",
           "icon": "form"
+        },
+        {
+          "name": "Component",
+          "path": "designer/component",
+          "icon": "logo"
         }
       ]
     },

@@ -1,24 +1,11 @@
 <script lang="ts">
+let {el}=$props()
+import Inp from '$lib/components/inps.svelte';
 import dat from './elprop.json';
 let schema=JSON.parse(JSON.stringify(dat))
-let {el}=$props()
-let element=$state((schema as Record<string, any>)[el])
-let rel=$state(el)
+
+let definedProps = $derived((schema as Record<string, any>)[el.type]);
 </script>
-<div>
-{#if rel === "Inp"}
-    {#each Object.entries(element) as [key, value]}
-    {key} {value}
-    {/each}
-{:else if rel === "Select"}
-    {#each Object.entries(element) as [key, value]}
-    {key} {value}
-    {/each}
-{:else if rel === "Sct"}
-    {#each Object.entries(element) as [key, value]}
-    {key} {value}
-    {/each}
-{:else}
-    NONE
-{/if}
-</div>
+{#each Object.entries(definedProps) as [key, value]}
+<Inp type="text" label={key} value={el.props[key]}></Inp>
+{/each}

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Inp  from '$lib/components/inp.svelte';
+  import Inp  from '$lib/components/inps.svelte';
   import Pass  from '$lib/components/inp/pass.svelte';
   import Btn  from '$lib/components/inp/btn.svelte';
   import Complex  from '$lib/components/inp/complex.svelte';

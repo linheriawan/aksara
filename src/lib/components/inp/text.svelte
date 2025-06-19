@@ -11,5 +11,5 @@ let {id,name,label,value= $bindable(''),keyup}:{
     {#if label}
     <label for={id}>{label}</label>
     {/if}
-    <input type="text" id={id} name={name} placeholder={name} onkeyup={keyup} bind:value={value}/> 
+    <input type="text" id={id} name={name} placeholder={label} onkeyup={keyup} bind:value={value}/> 
 </div>

@@ -27,7 +27,7 @@ function onMouseDown(event: MouseEvent) {
 </style>
 
 <div class="relative h-full">
-  <aside class="floating-panel z-40 h-full bg-white shadow-xl
+  <aside class="floating-panel z-40 h-full bg-white shadow-xl 
     {isPinned ? 'relative' : 'absolute top-0 left-0'}"
     style="width: {width}px; transform: translateX({!isPinned && !isVisible ?  `-${width-20}px`:`0` });"
     on:mouseenter={() => !isPinned && (isVisible = true)}
