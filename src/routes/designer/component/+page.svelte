@@ -66,10 +66,10 @@
     <Datetime label="Date" name="d-form" value="2025-01-01 10:10:00"/>
   </div>
   <div class="border border-yellow-300">
-    <Auto label="Autocomplete" name="a-form" bind:value={myval} items={(obja.map(o=>({value:o.id,label:o.model})))} />
+    <Auto label="Autocomplete" name="a-form" bind:value={myval} items={(obja.map(o=>({value:o.id,label:o.name})))} />
   </div>
   <div class="border border-blue-300">
-    <Complex label="complex" name="c-form" bind:value={myval} items={(obja.map(o=>({value:o.id,label:o.model})))} />
+    <Complex label="complex" name="c-form" bind:value={myval} items={(obja.map(o=>({value:o.id,label:o.name})))} />
   </div>
   
 

@@ -1,6 +1,6 @@
 <script lang="ts"> 
 let {id,name,label,value= $bindable(''),keyup}:{
-    id:string;
+    id?:string;
     name:string;
     label?:string;
     value:string;

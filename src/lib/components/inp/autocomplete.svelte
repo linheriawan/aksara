@@ -1,9 +1,9 @@
 <script lang="ts">
 let { id, name, label, items, value = $bindable('') }:{
-    id: string;
+    id?: string;
     name: string;
     label?: string;
-    items: [{ value: string, label: string }];
+    items: { value: string, label: string }[];
     value: string;
 } = $props();
 

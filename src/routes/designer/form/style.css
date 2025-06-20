@@ -1,7 +1,7 @@
 @import 'tailwindcss';
   
   .el_wrap { 
-    @apply border border-dashed p-1 cursor-pointer hover:border-blue-500 relative;
+    @apply border border-dashed m-1 p-1 cursor-pointer hover:border-blue-500;
     &.current_el { @apply bg-blue-100; }
     &.nested { @apply ml-4 border-l-2 border-l-gray-300; }
   }
@@ -16,24 +16,13 @@
   .dragging {
     @apply opacity-50;
   }
-  
-  .element-container {
-    @apply relative; 
-    >.drop-zone-before {
-        @apply w-full h-3  border-t-2 border-t-blue-500 bg-blue-100;
-        /* transform: translateY(-50%); */
-    }
-    >.drop-zone-after {
-        @apply w-full h-3  border-b-2 border-b-blue-500 bg-blue-100;
-        /* transform: translateY(50%); */
-    }
-    >.drop-zone-inside {
-        @apply border-2 border-blue-500 bg-blue-50 rounded;
-    }
+
+  .drop-zone-inside {
+      @apply w-full h-3 border-2 bg-green-50 rounded;
   }
   
   .canvas-container {
-    @apply border rounded-sm p-1 bg-white min-h-96 relative;
+    @apply border rounded-sm p-1 bg-white min-h-96;
   }
   
   .nested-indicator {
