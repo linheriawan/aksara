@@ -1,10 +1,17 @@
 <script lang="ts">
 import "./style.css"
 import type {FormElement,Schema,DraggedItem,DropZone} from "./utils.ts"
-import {} from "./utils.ts"
+import { cloneData, 
+  getElementByPath, 
+  moveElement, insertElementAtPath, removeElementByPath, 
+  addElementProperty, updateElementProperty, 
+  generateId, isPathEqual,
+  generateSvelteCode,
+  schemaToYaml, yamlToSchema, schemaToJson, jsonToSchema, SchemaManager
+} from "./utils.ts"
 import CodeView from "./CodeView.svelte"
 import SchemaView from "./SchemaView.svelte"
-
+import ElementRenderer from './ElementRenderer.svelte';
 // Imports
 import dat from './elprop.json';
 import type { Component } from 'svelte';
@@ -18,8 +25,7 @@ import PanelLeft from '$lib/components/sct/panelLeft.svelte';
 // Constants
 let TABS = [
   { id: 'canvas', label: 'Builder' },
-  { id: 'code', label: 'View Code' },
-  { id: 'obj', label: 'View Object' }
+  { id: 'code', label: 'View Code' }
 ];
 
 const PALETTE_ITEMS = [
@@ -29,22 +35,30 @@ const PALETTE_ITEMS = [
   { label: 'Sct Form', icon: '📋', type: 'SctForm', inputType: 'SctForm' }
 ] as const;
 
+const NESTABLE_TYPES = new Set(['div', 'SctForm']);
 const COMPONENT_MAP: Record<string, Component> = {
   'SctForm': SctForm,
   'Inp': Inp
 };
-
-const NESTABLE_TYPES = new Set(['div', 'SctForm']);
+const getComponent = (type: string): Component | false => {
+  return COMPONENT_MAP[type] || false;
+};
 
 // State
-const definedProps = structuredClone(dat) as Record<string, any>;
+const definedProps = cloneData(dat) as Record<string, any>;
 const schema = writable<Schema>([]);
+const schemaManager = new SchemaManager();
+
+// Subscribe to schema manager updates
+schemaManager.subscribe((newSchema) => {
+  schema.set(newSchema);
+});
 
 let selectedIndex = $state<number | null>(null);
 let selectedPath = $state<number[]>([]);
 let currentTab = $state<string>('canvas');
-let draggedItem = $state<DraggedItem>(null);
-let dropZone = $state<DropZone>(null);
+let draggedItem = $state<DraggedItem|null>(null);
+let dropZone = $state<DropZone|null>(null);
 let dragCounter = 0;
 
 // Derived values
@@ -60,119 +74,22 @@ const formattedPath = $derived(() => {
 });
 
 // Utility functions
-const generateId = (): string => 'el_' + Math.random().toString(36).substr(2, 9);
-
-const getElementByPath = (schema: FormElement[], path: number[]): FormElement | null => {
-  if (!path.length) return null;
-  
-  let current = schema[path[0]];
-  if (!current) return null;
-  
-  for (let i = 1; i < path.length; i++) {
-    if (!current.nesting?.[path[i]]) return null;
-    current = current.nesting[path[i]];
-  }
-  return current;
-};
-
-const setElementByPath = (path: number[], element: FormElement): FormElement[] => {
-  const newSchema = clonedSchema($schema);
-  
-  if (path.length === 1) {
-    newSchema[path[0]] = element;
-    return newSchema;
-  }
-  
-  let current = newSchema[path[0]];
-  for (let i = 1; i < path.length - 1; i++) {
-    current = current.nesting![path[i]];
-  }
-  
-  if (current.nesting) {
-    current.nesting[path[path.length - 1]] = element;
-  }
-  return newSchema;
-};
-const clonedSchema=(dat:any)=>{
-  try{
-    return JSON.parse(JSON.stringify(dat));//structuredClone(dat);
-  }catch (e: unknown) { // 'error' is implicitly 'unknown' with strict mode
-    if (e instanceof Error) {
-      console.error(e.message, JSON.stringify(dat));
-    } else {
-      console.error("An unknown error occurred:", e, JSON.stringify(dat));
-    }
-    return JSON.parse(JSON.stringify(dat));
-  }
-}
-const removeElementByPath = ( path: number[]): FormElement[] => {
-  const newSchema = clonedSchema($schema);
-  
-  if (path.length === 1) {
-    newSchema.splice(path[0], 1);
-    return newSchema;
-  }
-  
-  let current = newSchema[path[0]];
-  for (let i = 1; i < path.length - 1; i++) {
-    current = current.nesting![path[i]];
-  }
-  
-  current.nesting?.splice(path[path.length - 1], 1);
-  return newSchema;
-};
-
-const insertElementAtPath = (
-  path: number[], 
-  position: 'before' | 'after' | 'inside', 
-  element: FormElement
-): FormElement[] => {
-  const newSchema = clonedSchema($schema);
-  
-  if (!path.length) {
-    position === 'before' ? newSchema.unshift(element) : newSchema.push(element);
-    return newSchema;
-  }
-  
-  if (path.length === 1 && position !== 'inside') {
-    const index = position === 'before' ? path[0] : path[0] + 1;
-    newSchema.splice(index, 0, element);
-    return newSchema;
-  }
-  
-  let current = newSchema[path[0]];
-  let parent = null;
-  
-  for (let i = 1; i < path.length; i++) {
-    parent = current;
-    current = current.nesting![path[i]];
-  }
-  
-  if (position === 'inside') {
-    current.nesting ??= [];
-    current.nesting.push(element);
-  } else if (parent) {
-    const index = position === 'before' ? path[path.length - 1] : path[path.length - 1] + 1;
-    parent.nesting!.splice(index, 0, element);
-  }
-  return newSchema;
-};
-
 const createNewElement = (type: FormElement['type'], inputType?: string): FormElement => {
-  const typeDefinition = definedProps[inputType??type];
+  const typeDefinition = definedProps[inputType ?? type];
   const newElement: FormElement = { 
     type, 
     props: {}, 
     _id: generateId() 
   };
+  
   if (typeDefinition) {
     if (typeDefinition.nesting && Array.isArray(typeDefinition.nesting)) {
-      newElement.nesting = clonedSchema(typeDefinition.nesting);
+      newElement.nesting = cloneData(typeDefinition.nesting);
     }
     
     Object.entries(typeDefinition).forEach(([key, value]) => {
       if (key !== 'nesting') {
-        newElement.props[key] = clonedSchema(value);
+        newElement.props[key] = cloneData(value);
       }
     });
   }
@@ -187,13 +104,11 @@ const createNewElement = (type: FormElement['type'], inputType?: string): FormEl
   return newElement;
 };
 
-const getComponent = (type: string): Component | false => {
-  return COMPONENT_MAP[type] || false;
-};
 
 // Event handlers
 const addElement = (type: FormElement['type'], inputType?: string) => {
-  schema.update(s => [...s, createNewElement(type, inputType)]);
+  const newElement = createNewElement(type, inputType);
+  schemaManager.insertElement([], 'after', newElement);
 };
 
 const handlePaletteDragStart = (e: DragEvent, type: FormElement['type'], inputType?: string) => {
@@ -202,7 +117,7 @@ const handlePaletteDragStart = (e: DragEvent, type: FormElement['type'], inputTy
 };
 
 const handleElementDragStart = (e: DragEvent, element: FormElement, path: number[]) => {
-  let inputType=element.type=="Inp"? element.props.type : element.type;
+  let inputType = element.type === "Inp" ? element.props.type : element.type;
   draggedItem = { type: element.type, isNew: false, element, path, inputType };
   e.dataTransfer!.effectAllowed = 'move';
   e.stopPropagation();
@@ -224,8 +139,10 @@ const handleDragLeave = (e: DragEvent) => {
 const handleDragOver = (e: DragEvent, path: number[], canNest: boolean = false) => {
   e.preventDefault();
   e.stopPropagation();
+  
   if (!draggedItem) return;
   
+  // Handle root level drops (empty schema)
   if (!path.length) {
     dropZone = { path: [], position: 'after' };
     e.dataTransfer!.dropEffect = draggedItem.isNew ? 'copy' : 'move';
@@ -237,41 +154,67 @@ const handleDragOver = (e: DragEvent, path: number[], canNest: boolean = false) 
   const height = rect.height;
   const relativeY = y / height;
   
-  if (canNest && relativeY > 0.3 && relativeY < 0.7) {
+  // Determine drop position
+  if (canNest && relativeY >= 0.25 && relativeY <= 0.75) {
     dropZone = { path, position: 'inside' };
-    e.dataTransfer!.dropEffect = 'copy';
-  } else if (relativeY < 0.3) {
+  } else if (relativeY < 0.25) {
     dropZone = { path, position: 'before' };
-    e.dataTransfer!.dropEffect = draggedItem.isNew ? 'copy' : 'move';
   } else {
     dropZone = { path, position: 'after' };
-    e.dataTransfer!.dropEffect = draggedItem.isNew ? 'copy' : 'move';
   }
   
+  // Set consistent dropEffect - always use copy for new items, move for existing
+  e.dataTransfer!.dropEffect = draggedItem.isNew ? 'copy' : 'move';
+  
+  // Add visual feedback
   (e.currentTarget as HTMLElement).classList.add('drag-hover');
 };
 
+// Fixed handleDrop function
 const handleDrop = (e: DragEvent) => {
-  e.preventDefault();
   e.stopPropagation();
-  if (!draggedItem || !dropZone) return;
+  e.preventDefault();
   
-  schema.update(s => {
-    let newSchema = [...s];
-    
-    if (draggedItem!.isNew) {
-      const newElement = createNewElement(draggedItem!.type, draggedItem!.inputType);
-      newSchema = insertElementAtPath( dropZone!.path, dropZone!.position, newElement);
+  console.log('Drop triggered:', { draggedItem, dropZone });
+  
+  if (!draggedItem || !dropZone) {
+    console.log('Missing draggedItem or dropZone');
+    return;
+  }
+  
+  try {
+    if (draggedItem.isNew) {
+      // Adding new element
+      console.log(`Adding new ${draggedItem.type} at ${dropZone.position} position`);
+      const newElement = createNewElement(draggedItem.type, draggedItem.inputType);
+      schemaManager.insertElement(dropZone.path, dropZone.position, newElement);
     } else {
-      const element = draggedItem!.element!;
-      newSchema = removeElementByPath(draggedItem!.path!);
-      newSchema = insertElementAtPath(dropZone!.path, dropZone!.position, element);
+      // Moving existing element
+      console.log(`Moving ${draggedItem.type} from ${draggedItem.path?.join('→')} to ${dropZone.position} at ${dropZone.path.join('→')}`);
+      schemaManager.moveElement(draggedItem.path!, dropZone.path, dropZone.position);
     }
-    console.log(`${draggedItem!.inputType}:${draggedItem!.path?.join('→') || 'new'} into ${dropZone!.position} ${formattedPath()}`)
-    return newSchema;
-  });
+  } catch (error) {
+    console.error('Drop operation failed:', error);
+  }
+  
+  // Clean up drag state and visual feedback
+  const dragHoverElements = document.querySelectorAll('.drag-hover');
+  dragHoverElements.forEach(el => el.classList.remove('drag-hover'));
   
   // Reset drag state
+  draggedItem = null;
+  dropZone = null;
+  dragCounter = 0;
+  
+  console.log('Drop completed');
+};
+
+// Also add this helper function to ensure proper event handling
+const handleDragEnd = (e: DragEvent) => {
+  // Clean up any remaining drag state
+  const dragHoverElements = document.querySelectorAll('.drag-hover');
+  dragHoverElements.forEach(el => el.classList.remove('drag-hover'));
+  
   draggedItem = null;
   dropZone = null;
   dragCounter = 0;
@@ -287,49 +230,87 @@ const addProperty = (e: Event) => {
   const formData = new FormData(e.target as HTMLFormElement);
   const prop = formData.get('prop') as string;
   const pathStr = formData.get('path') as string;
-  
   if (!prop.trim()) return;
   
   const path = JSON.parse(pathStr);
-  
-  schema.update(s => {
-    const newSchema = clonedSchema(s);
-    const element = getElementByPath(newSchema, path);
-    if (element) {
-      element.props[prop] = "";
-    }
-    return newSchema;
-  });
-  
+  schemaManager.addProperty(path, prop);
   (e.target as HTMLFormElement).reset();
 };
 
 const updateProperty = (path: number[], key: string, value: any) => {
-  schema.update(s => {
-    const newSchema = clonedSchema(s);
-    const element = getElementByPath(newSchema, path);
-    if (element) {
-      element.props[key] = value;
-    }
-    return newSchema;
-  });
+  schemaManager.updateProperty(path, key, value);
 };
 
 const deleteElement = () => {
-  schema.update(s => removeElementByPath(selectedPath));
+  schemaManager.removeElement(selectedPath);
   selectedPath = [];
   selectedIndex = null;
 };
 
-const isPathEqual = (path1: number[], path2: number[]): boolean => {
-  return path1.length === path2.length && path1.every((val, i) => val === path2[i]);
+// Export/Import functions
+const exportYaml = () => {
+  const yamlString = schemaToYaml($schema);
+  const blob = new Blob([yamlString], { type: 'text/yaml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'form-schema.yaml';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+const importYaml = (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const yamlString = e.target?.result as string;
+    const importedSchema = yamlToSchema(yamlString);
+    schemaManager.setSchema(importedSchema);
+  };
+  reader.readAsText(file);
+};
+
+const exportJson = () => {
+  const jsonString = schemaToJson($schema);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'form-schema.json';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+const importJson = (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const jsonString = e.target?.result as string;
+    const importedSchema = jsonToSchema(jsonString);
+    schemaManager.setSchema(importedSchema);
+  };
+  reader.readAsText(file);
 };
 </script>
-
-<TabNav tabs={TABS} current={currentTab} onSelect={(id) => currentTab = id} />
+<div class="flex justify-between">
+  <div>
+    <TabNav tabs={TABS} current={currentTab} onSelect={(id) => currentTab = id} />
+  </div>
+  <div>
+    <button onclick={exportYaml} class="btn border rounded-md p-1 text-xs">📤 Export YAML</button>
+    <button onclick={exportJson} class="btn border rounded-md p-1 text-xs">📤 Export JSON</button>
+  </div>
+</div>
 <hr class="mb-1">
 
 {#if currentTab === 'canvas'}
+
 <div class="grid gap-1" style="grid-template-columns:auto 3fr 1fr auto">
   <PanelLeft name="Palette" width={100} isPinned={true}>
     <div class="grid gap-1 p-2">
@@ -346,6 +327,10 @@ const isPathEqual = (path1: number[], path2: number[]): boolean => {
   </PanelLeft>
 
   <!-- Form Canvas -->
+  <div class="max-h-100 overflow-scroll relative"> 
+  <div class="debug-info">
+    {draggedItem?.type}:{draggedItem?.path?.join('→') || 'new'} into { dropZone?.position} {formattedPath()}
+  </div>
   <div role="main" class="canvas-container"
     ondrop={handleDrop}
     ondragover={(e) => handleDragOver(e, [])}
@@ -356,52 +341,20 @@ const isPathEqual = (path1: number[], path2: number[]): boolean => {
         Drag components from the palette to start building your form
       </div>
     {/if}
-    
     {#each $schema as node, i}
-      {@const path = [i]}
-      {@const isSelected = isPathEqual(selectedPath, path)}
-      {@const canNest = NESTABLE_TYPES.has(node.type)}
-      {@const Component = getComponent(node.type)}
-      
-      <div draggable="true" role="button" tabindex="0"
-        class="el_wrap {isSelected ? 'current_el' : ''}"
-        ondragstart={(e) => handleElementDragStart(e, node, path)}
-        ondragover={(e) => handleDragOver(e, path, canNest)}
-        ondragenter={handleDragEnter}
-        ondragleave={handleDragLeave}
-        onclick={() => selectElement(path)}
-        onkeydown={(e) => e.key === 'Enter' && selectElement(path)} >
-        {#if Component}
-          <Component {...node.props} />
-        {:else}
-          <svelte:element this={node.type} {...node.props}>
-            {#if node.nesting?.length}
-              {#each node.nesting as childNode, j}
-                {@const childPath = [...path, j]}
-                {@const childIsSelected = isPathEqual(selectedPath, childPath)}
-                {@const childCanNest = NESTABLE_TYPES.has(childNode.type)}
-                {@const ChildComponent = getComponent(childNode.type)}
-                
-                <div draggable="true" role="button" tabindex="0" 
-                  ondragstart={(e) => handleElementDragStart(e, childNode, childPath)}
-                  ondragover={(e) => handleDragOver(e, childPath, childCanNest)}
-                  ondragenter={handleDragEnter}
-                  ondragleave={handleDragLeave}
-                  class="el_wrap nested {childIsSelected ? 'current_el' : ''}"
-                  onclick={(e) => {e.stopPropagation(); selectElement(childPath)}}
-                  onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), selectElement(childPath))} >
-                  {#if ChildComponent}
-                    <ChildComponent {...childNode.props} />
-                  {:else}
-                    <svelte:element this={childNode.type} {...childNode.props} />
-                  {/if}
-                </div>
-              {/each}
-            {/if}
-          </svelte:element>
-        {/if}
-      </div>
+      <ElementRenderer 
+        {node}
+        path={[i]}
+        {selectedPath}
+        {handleElementDragStart}
+        {handleDragOver}
+        {handleDragEnter}
+        {handleDragLeave}
+        {handleDragEnd}
+        {selectElement} />
     {/each}
+    
+  </div>
   </div>
   <SchemaView schema={$schema} />
   <PanelRight isPinned={true}>
@@ -442,16 +395,22 @@ const isPathEqual = (path1: number[], path2: number[]): boolean => {
     {/if}
   </PanelRight>
 </div>
+{/if}
 
-{#if draggedItem}
-  <div class="debug-info">
-    {draggedItem.type}:{draggedItem.path?.join('→') || 'new'} into {formattedPath()}
+<CodeView toggleView={currentTab === 'code'} schema={$schema}>
+  <div class="flex justify-between items-center my-2 mr-2">
+    <h3 class="font-bold">YAML Schema</h3>
+    <label class="bg-white palette-item text-xs cursor-pointer">
+        📥 Import YAML <input type="file" accept=".yaml,.yml" onchange={importYaml} class="hidden">
+    </label>
   </div>
-{/if}
-{/if}
+  <pre class="bg-black text-white p-2 text-xs overflow-auto max-h-96 mr-2">{schemaToYaml($schema)}</pre>
 
-<CodeView toggleView={currentTab === 'code'} schema={$schema} />
-
-{#if currentTab==='obj'}
-<pre class="bg-black text-white w-full p-2">{JSON.stringify($schema,null,2)}</pre>
-{/if}
+  <div class="flex justify-between items-center my-2 mr-2">
+    <h3 class="font-bold">JSON Schema</h3>
+    <label class="bg-white palette-item text-xs cursor-pointer">
+      📥 Import JSON <input type="file" accept=".json" onchange={importJson} class="hidden">
+    </label>
+  </div>
+  <pre class="bg-black text-white p-2 text-xs overflow-auto max-h-96 mr-2">{JSON.stringify($schema, null, 2)}</pre>
+</CodeView>

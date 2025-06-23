@@ -3,7 +3,7 @@
   .el_wrap { 
     @apply border border-dashed m-1 p-1 cursor-pointer hover:border-blue-500;
     &.current_el { @apply bg-blue-100; }
-    &.nested { @apply ml-4 border-l-2 border-l-gray-300; }
+    &.nested { @apply border-l-2 border-l-gray-300; }
   }
   .drag-hover { @apply !border-green-500 !bg-green-500; }
   .palette-item {
@@ -22,9 +22,11 @@
   }
   
   .canvas-container {
-    @apply border rounded-sm p-1 bg-white min-h-96;
+    @apply border rounded-sm p-1 pt-5 bg-white min-h-96;
   }
-  
+  .debug-info{
+    @apply bg-black/30 absolute top-0 w-full text-center text-white;
+  }  
   .nested-indicator {
     @apply absolute left-0 top-0 bottom-0 w-1 bg-gray-200;
   }

@@ -53,11 +53,13 @@ const svelteCode = $derived(() => renderSvelteCode(schema as FormElement[]));
 </script>
 
 {#if toggleView}
-  <div class="code-view">
-    <pre class="bg-black text-white w-full border p-2 overflow-x-auto text-sm font-mono"
+  <div class="code-view mr-2">
+    <h3 class="font-bold">Svelte Code</h3>
+    <pre class="bg-black text-white p-2 overflow-x-auto text-sm"
          role="region" 
          aria-label="Generated Svelte code">{svelteCode()}</pre>
   </div>
+  <slot/>
 {/if}
 
 <style>
