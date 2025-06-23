@@ -49,6 +49,7 @@
             {handleDragOver}
             {handleDragEnter}
             {handleDragLeave}
+            {handleDragEnd}
             {selectElement} />
         {/each}
       {/if}
@@ -66,6 +67,7 @@
             {handleDragOver}
             {handleDragEnter}
             {handleDragLeave}
+            {handleDragEnd}
             {selectElement} />
         {/each}
       {/if}
