@@ -1,10 +1,5 @@
 <script lang="ts">
-type FormElement = {
-  type: string;
-  props: Record<string, any>;
-  nesting?: FormElement[];
-  _id?: string;
-};
+import type {FormElement} from "./utils.ts"
 
 const SELF_CLOSING_TAGS = new Set(['Inp', 'Select', 'input', 'img', 'br', 'hr']);
 

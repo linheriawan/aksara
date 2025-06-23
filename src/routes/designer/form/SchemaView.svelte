@@ -1,10 +1,5 @@
 <script lang="ts">
-type FormElement = {
-  type: string;
-  props: Record<string, any>;
-  nesting?: FormElement[];
-  _id?: string;
-};
+import type {FormElement} from "./utils.ts"
 
 function formatSchema(elements: FormElement[]): Record<string, any>[] {
   return elements.map(element => {
@@ -80,18 +75,8 @@ const yamlOutput = $derived(() => {
 });
 </script>
 
-<div class="schema-view overflow-x-auto border bg-black">
+<div class="overflow-x-auto border bg-black">
   <pre class="p-2 text-white text-sm font-mono whitespace-pre" 
        role="region" 
        aria-label="Schema YAML output">{yamlOutput()}</pre>
 </div>
-
-<style>
-  .schema-view {
-    max-height: 80vh;
-    overflow-y: auto;
-  }
-  pre {
-    word-wrap: normal;
-  }
-</style>

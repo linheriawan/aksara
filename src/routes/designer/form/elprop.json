@@ -1,15 +1,17 @@
 {
-  "Inp": {
+  "Text": {
     "id": "string",
     "type": "text",
     "label": "string",
-    "name": "string"
+    "name": "string",
+    "value": ""
   },
   "Select": {
     "id": "string",
     "type": "select",
     "label": "string",
     "name": "string",
+    "value": "",
     "data": []
   },
   "SctForm": {

@@ -1,54 +1,37 @@
 <script lang="ts">
 import "./style.css"
+import type {FormElement,Schema,DraggedItem,DropZone} from "./utils.ts"
+import {} from "./utils.ts"
 import CodeView from "./CodeView.svelte"
 import SchemaView from "./SchemaView.svelte"
 
-// Types
-type FormElement = {
-  _id?: string;
-  type: string;
-  props: Record<string, any>;
-  nesting?: FormElement[];
-};
-type Schema = FormElement[];
-type DraggedItem = {
-  isNew: boolean;
-  path?: number[];
-  type: FormElement['type'];
-  element?: FormElement;
-} | null;
-type DropZone = {
-  path: number[];
-  position: 'before' | 'after' | 'inside';
-} | null;
-
 // Imports
 import dat from './elprop.json';
+import type { Component } from 'svelte';
 import { writable } from 'svelte/store';
 import Inp from '$lib/components/inps.svelte';
 import SctForm from '$lib/components/sct/form.svelte';
 import TabNav from '$lib/components/sct/tabnav.svelte';
 import PanelRight from '$lib/components/sct/panelRight.svelte';
 import PanelLeft from '$lib/components/sct/panelLeft.svelte';
-import type { Component } from 'svelte';
 
 // Constants
-const PALETTE_ITEMS = [
-  { type: 'div', icon: '📦', label: 'Div' },
-  { type: 'Inp', icon: '📝', label: 'Input' },
-  { type: 'Select', icon: '📋', label: 'Select' },
-  { type: 'SctForm', icon: '📋', label: 'Form' }
-] as const;
+let TABS = [
+  { id: 'canvas', label: 'Builder' },
+  { id: 'code', label: 'View Code' },
+  { id: 'obj', label: 'View Object' }
+];
 
-const TABS = [
-  { id: 'canvas', label: 'Modules' },
-  { id: 'code', label: 'View Code' }
+const PALETTE_ITEMS = [
+  { label: 'Div', icon: '📦', type: 'div', inputType: 'div' },
+  { label: 'Input', icon: '📝', type: 'Inp', inputType: 'Text' },
+  { label: 'Select', icon: '📋', type: 'Inp', inputType: 'Select' },
+  { label: 'Sct Form', icon: '📋', type: 'SctForm', inputType: 'SctForm' }
 ] as const;
 
 const COMPONENT_MAP: Record<string, Component> = {
   'SctForm': SctForm,
-  'Inp': Inp,
-  'Select': Inp
+  'Inp': Inp
 };
 
 const NESTABLE_TYPES = new Set(['div', 'SctForm']);
@@ -59,7 +42,7 @@ const schema = writable<Schema>([]);
 
 let selectedIndex = $state<number | null>(null);
 let selectedPath = $state<number[]>([]);
-let currentTab = $state<'canvas' | 'code'>('canvas');
+let currentTab = $state<string>('canvas');
 let draggedItem = $state<DraggedItem>(null);
 let dropZone = $state<DropZone>(null);
 let dragCounter = 0;
@@ -67,14 +50,13 @@ let dragCounter = 0;
 // Derived values
 const formattedPath = $derived(() => {
   if (!dropZone?.path?.length) return '';
-  
   const pathSegments: string[] = [];
   for (let i = 0; i < dropZone.path.length; i++) {
     const element = getElementByPath($schema, dropZone.path.slice(0, i + 1));
     pathSegments.push(element?.type || '[Not Found]');
     if (!element) break;
   }
-  return pathSegments.join(' > ');
+  return pathSegments.join('→');
 });
 
 // Utility functions
@@ -93,8 +75,8 @@ const getElementByPath = (schema: FormElement[], path: number[]): FormElement | 
   return current;
 };
 
-const setElementByPath = (schema: FormElement[], path: number[], element: FormElement): FormElement[] => {
-  const newSchema = structuredClone(schema);
+const setElementByPath = (path: number[], element: FormElement): FormElement[] => {
+  const newSchema = clonedSchema($schema);
   
   if (path.length === 1) {
     newSchema[path[0]] = element;
@@ -111,9 +93,20 @@ const setElementByPath = (schema: FormElement[], path: number[], element: FormEl
   }
   return newSchema;
 };
-
-const removeElementByPath = (schema: FormElement[], path: number[]): FormElement[] => {
-  const newSchema = structuredClone(schema);
+const clonedSchema=(dat:any)=>{
+  try{
+    return JSON.parse(JSON.stringify(dat));//structuredClone(dat);
+  }catch (e: unknown) { // 'error' is implicitly 'unknown' with strict mode
+    if (e instanceof Error) {
+      console.error(e.message, JSON.stringify(dat));
+    } else {
+      console.error("An unknown error occurred:", e, JSON.stringify(dat));
+    }
+    return JSON.parse(JSON.stringify(dat));
+  }
+}
+const removeElementByPath = ( path: number[]): FormElement[] => {
+  const newSchema = clonedSchema($schema);
   
   if (path.length === 1) {
     newSchema.splice(path[0], 1);
@@ -130,12 +123,11 @@ const removeElementByPath = (schema: FormElement[], path: number[]): FormElement
 };
 
 const insertElementAtPath = (
-  schema: FormElement[], 
   path: number[], 
   position: 'before' | 'after' | 'inside', 
   element: FormElement
 ): FormElement[] => {
-  const newSchema = structuredClone(schema);
+  const newSchema = clonedSchema($schema);
   
   if (!path.length) {
     position === 'before' ? newSchema.unshift(element) : newSchema.push(element);
@@ -163,28 +155,33 @@ const insertElementAtPath = (
     const index = position === 'before' ? path[path.length - 1] : path[path.length - 1] + 1;
     parent.nesting!.splice(index, 0, element);
   }
-  
   return newSchema;
 };
 
-const createNewElement = (type: FormElement['type']): FormElement => {
-  const typeDefinition = definedProps[type];
+const createNewElement = (type: FormElement['type'], inputType?: string): FormElement => {
+  const typeDefinition = definedProps[inputType??type];
   const newElement: FormElement = { 
     type, 
     props: {}, 
     _id: generateId() 
   };
-  
   if (typeDefinition) {
     if (typeDefinition.nesting && Array.isArray(typeDefinition.nesting)) {
-      newElement.nesting = structuredClone(typeDefinition.nesting);
+      newElement.nesting = clonedSchema(typeDefinition.nesting);
     }
     
     Object.entries(typeDefinition).forEach(([key, value]) => {
       if (key !== 'nesting') {
-        newElement.props[key] = structuredClone(value);
+        newElement.props[key] = clonedSchema(value);
       }
     });
+  }
+  
+  // Set the type prop for Inp components
+  if (type === 'Inp' && inputType) {
+    newElement.props.type = inputType;
+    // Initialize value to avoid binding issues
+    newElement.props.value = "";
   }
   
   return newElement;
@@ -195,17 +192,18 @@ const getComponent = (type: string): Component | false => {
 };
 
 // Event handlers
-const addElement = (type: FormElement['type']) => {
-  schema.update(s => [...s, createNewElement(type)]);
+const addElement = (type: FormElement['type'], inputType?: string) => {
+  schema.update(s => [...s, createNewElement(type, inputType)]);
 };
 
-const handlePaletteDragStart = (e: DragEvent, type: FormElement['type']) => {
-  draggedItem = { type, isNew: true };
+const handlePaletteDragStart = (e: DragEvent, type: FormElement['type'], inputType?: string) => {
+  draggedItem = { type, isNew: true, inputType };
   e.dataTransfer!.effectAllowed = 'copy';
 };
 
 const handleElementDragStart = (e: DragEvent, element: FormElement, path: number[]) => {
-  draggedItem = { type: element.type, isNew: false, element, path };
+  let inputType=element.type=="Inp"? element.props.type : element.type;
+  draggedItem = { type: element.type, isNew: false, element, path, inputType };
   e.dataTransfer!.effectAllowed = 'move';
   e.stopPropagation();
 };
@@ -262,14 +260,14 @@ const handleDrop = (e: DragEvent) => {
     let newSchema = [...s];
     
     if (draggedItem!.isNew) {
-      const newElement = createNewElement(draggedItem!.type);
-      newSchema = insertElementAtPath(newSchema, dropZone!.path, dropZone!.position, newElement);
+      const newElement = createNewElement(draggedItem!.type, draggedItem!.inputType);
+      newSchema = insertElementAtPath( dropZone!.path, dropZone!.position, newElement);
     } else {
       const element = draggedItem!.element!;
-      newSchema = removeElementByPath(newSchema, draggedItem!.path!);
-      newSchema = insertElementAtPath(newSchema, dropZone!.path, dropZone!.position, element);
+      newSchema = removeElementByPath(draggedItem!.path!);
+      newSchema = insertElementAtPath(dropZone!.path, dropZone!.position, element);
     }
-    
+    console.log(`${draggedItem!.inputType}:${draggedItem!.path?.join('→') || 'new'} into ${dropZone!.position} ${formattedPath()}`)
     return newSchema;
   });
   
@@ -295,7 +293,7 @@ const addProperty = (e: Event) => {
   const path = JSON.parse(pathStr);
   
   schema.update(s => {
-    const newSchema = structuredClone(s);
+    const newSchema = clonedSchema(s);
     const element = getElementByPath(newSchema, path);
     if (element) {
       element.props[prop] = "";
@@ -308,7 +306,7 @@ const addProperty = (e: Event) => {
 
 const updateProperty = (path: number[], key: string, value: any) => {
   schema.update(s => {
-    const newSchema = structuredClone(s);
+    const newSchema = clonedSchema(s);
     const element = getElementByPath(newSchema, path);
     if (element) {
       element.props[key] = value;
@@ -318,7 +316,7 @@ const updateProperty = (path: number[], key: string, value: any) => {
 };
 
 const deleteElement = () => {
-  schema.update(s => removeElementByPath(s, selectedPath));
+  schema.update(s => removeElementByPath(selectedPath));
   selectedPath = [];
   selectedIndex = null;
 };
@@ -336,15 +334,11 @@ const isPathEqual = (path1: number[], path2: number[]): boolean => {
   <PanelLeft name="Palette" width={100} isPinned={true}>
     <div class="grid gap-1 p-2">
       {#each PALETTE_ITEMS as item}
-        <div 
-          draggable="true" 
-          role="button"
-          tabindex="0"
-          class="palette-item"
-          ondragstart={(e) => handlePaletteDragStart(e, item.type)}
-          onclick={() => addElement(item.type)}
-          onkeydown={(e) => e.key === 'Enter' && addElement(item.type)}
-        >
+        <div role="button" tabindex="0"
+          draggable="true" class="palette-item"
+          ondragstart={(e) => handlePaletteDragStart(e, item.type, item.inputType)}
+          onclick={() => addElement(item.type, item.inputType)}
+          onkeydown={(e) => e.key === 'Enter' && addElement(item.type, item.inputType)} >
           {item.icon} {item.label}
         </div>
       {/each}
@@ -352,14 +346,11 @@ const isPathEqual = (path1: number[], path2: number[]): boolean => {
   </PanelLeft>
 
   <!-- Form Canvas -->
-  <div 
-    role="main"
-    class="canvas-container"
+  <div role="main" class="canvas-container"
     ondrop={handleDrop}
     ondragover={(e) => handleDragOver(e, [])}
     ondragenter={handleDragEnter}
-    ondragleave={handleDragLeave}
-  >
+    ondragleave={handleDragLeave} >
     {#if $schema.length === 0}
       <div class="empty-state">
         Drag components from the palette to start building your form
@@ -372,18 +363,14 @@ const isPathEqual = (path1: number[], path2: number[]): boolean => {
       {@const canNest = NESTABLE_TYPES.has(node.type)}
       {@const Component = getComponent(node.type)}
       
-      <div 
+      <div draggable="true" role="button" tabindex="0"
         class="el_wrap {isSelected ? 'current_el' : ''}"
-        role="button"
-        tabindex="0"
-        draggable="true"
         ondragstart={(e) => handleElementDragStart(e, node, path)}
         ondragover={(e) => handleDragOver(e, path, canNest)}
         ondragenter={handleDragEnter}
         ondragleave={handleDragLeave}
         onclick={() => selectElement(path)}
-        onkeydown={(e) => e.key === 'Enter' && selectElement(path)}
-      >
+        onkeydown={(e) => e.key === 'Enter' && selectElement(path)} >
         {#if Component}
           <Component {...node.props} />
         {:else}
@@ -395,18 +382,14 @@ const isPathEqual = (path1: number[], path2: number[]): boolean => {
                 {@const childCanNest = NESTABLE_TYPES.has(childNode.type)}
                 {@const ChildComponent = getComponent(childNode.type)}
                 
-                <div 
-                  role="button"
-                  tabindex="0" 
-                  draggable="true"
+                <div draggable="true" role="button" tabindex="0" 
                   ondragstart={(e) => handleElementDragStart(e, childNode, childPath)}
                   ondragover={(e) => handleDragOver(e, childPath, childCanNest)}
                   ondragenter={handleDragEnter}
                   ondragleave={handleDragLeave}
                   class="el_wrap nested {childIsSelected ? 'current_el' : ''}"
                   onclick={(e) => {e.stopPropagation(); selectElement(childPath)}}
-                  onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), selectElement(childPath))}
-                >
+                  onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), selectElement(childPath))} >
                   {#if ChildComponent}
                     <ChildComponent {...childNode.props} />
                   {:else}
@@ -420,9 +403,7 @@ const isPathEqual = (path1: number[], path2: number[]): boolean => {
       </div>
     {/each}
   </div>
-
   <SchemaView schema={$schema} />
-
   <PanelRight isPinned={true}>
     {#if selectedPath.length < 1}
       <div class="p-4 text-gray-500 text-sm">
@@ -437,12 +418,9 @@ const isPathEqual = (path1: number[], path2: number[]): boolean => {
           </h4>
           
           {#each Object.entries(selectedElement.props) as [key, value]}
-            <Inp 
-              type="text" 
-              label={key} 
-              value={value}
-              on:input={(e) => updateProperty(selectedPath, key, e.detail)}
-            />
+            <Inp type="text" label={key} 
+              bind:value={selectedElement.props[key]}
+              input={(e) => updateProperty(selectedPath, key, e.detail)} />
           {/each}
           
           <!-- Add new property -->
@@ -454,10 +432,8 @@ const isPathEqual = (path1: number[], path2: number[]): boolean => {
           
           <!-- Element actions -->
           <div class="flex gap-1 mt-2">
-            <button 
-              class="border rounded-md px-2 py-1 text-xs bg-red-50 hover:bg-red-100"
-              onclick={deleteElement}
-            >
+            <button onclick={deleteElement} 
+              class="border rounded-md px-2 py-1 text-xs bg-red-50 hover:bg-red-100">
               Delete
             </button>
           </div>
@@ -475,3 +451,7 @@ const isPathEqual = (path1: number[], path2: number[]): boolean => {
 {/if}
 
 <CodeView toggleView={currentTab === 'code'} schema={$schema} />
+
+{#if currentTab==='obj'}
+<pre class="bg-black text-white w-full p-2">{JSON.stringify($schema,null,2)}</pre>
+{/if}
