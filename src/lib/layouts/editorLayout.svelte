@@ -11,13 +11,11 @@ const toggle=(x:string,y:string)=>{ PnM(`.${x}`).toggle(y) }
 let {modules,info,children}=$props();
 </script>
 
-<div class="grid-1n1 h-screen">
+<div class="editor-layout h-screen">
     <SctHead appinfo={info} headerLogoClick={()=>toggle('drawer','hidden')} appModal={()=>toggle('modules-menu','show')} /> 
-    <main class="flex flex-col sm:flex-row justify-center items-stretch bg-sky-200 h-full">
-        <SctDrawer items={modules}/>
-        <div class="grid-1in1 w-full" style="overflow-x: hidden;">
-            {@render children()}
-        </div>
+    <SctDrawer items={modules}/>
+    <main class="bg-sky-200 h-full w-full overflow-auto">
+        {@render children()}
     </main>
     <SctFoot>
         <svelte:fragment slot='modal'>

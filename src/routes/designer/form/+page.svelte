@@ -104,7 +104,6 @@ const createNewElement = (type: FormElement['type'], inputType?: string): FormEl
   return newElement;
 };
 
-
 // Event handlers
 const addElement = (type: FormElement['type'], inputType?: string) => {
   const newElement = createNewElement(type, inputType);
@@ -174,14 +173,11 @@ const handleDragOver = (e: DragEvent, path: number[], canNest: boolean = false) 
 const handleDrop = (e: DragEvent) => {
   e.stopPropagation();
   e.preventDefault();
-  
   console.log('Drop triggered:', { draggedItem, dropZone });
-  
   if (!draggedItem || !dropZone) {
     console.log('Missing draggedItem or dropZone');
     return;
   }
-  
   try {
     if (draggedItem.isNew) {
       // Adding new element
@@ -205,7 +201,6 @@ const handleDrop = (e: DragEvent) => {
   draggedItem = null;
   dropZone = null;
   dragCounter = 0;
-  
   console.log('Drop completed');
 };
 
@@ -214,7 +209,6 @@ const handleDragEnd = (e: DragEvent) => {
   // Clean up any remaining drag state
   const dragHoverElements = document.querySelectorAll('.drag-hover');
   dragHoverElements.forEach(el => el.classList.remove('drag-hover'));
-  
   draggedItem = null;
   dropZone = null;
   dragCounter = 0;
@@ -298,7 +292,7 @@ const importJson = (e: Event) => {
   reader.readAsText(file);
 };
 </script>
-<div class="flex justify-between">
+<div class="flex justify-between pt-1">
   <div>
     <TabNav tabs={TABS} current={currentTab} onSelect={(id) => currentTab = id} />
   </div>
@@ -327,8 +321,8 @@ const importJson = (e: Event) => {
   </PanelLeft>
 
   <!-- Form Canvas -->
-  <div class="max-h-100 overflow-scroll relative"> 
-  <div class="debug-info">
+  <div class="relative"> 
+  <div class="absolute top-0 w-full text-center bg-black/30 text-white">
     {draggedItem?.type}:{draggedItem?.path?.join('→') || 'new'} into { dropZone?.position} {formattedPath()}
   </div>
   <div role="main" class="canvas-container"

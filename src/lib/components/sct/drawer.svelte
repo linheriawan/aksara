@@ -46,7 +46,7 @@ function handleInput(e:Event) {
     find = target.value; 
 }
 </script>
-<div class="drawer grid grid-row-1 py-2 sm:border-r">
+<nav class="drawer grid grid-row-1 py-2 sm:border-r">
 
 <div class="h-fit px-2">
 <Text id="search_menu" name="find" label="find" keyup={handleInput} bind:value={find} />
@@ -69,4 +69,4 @@ function handleInput(e:Event) {
     {/if}
 {/each}
 </div>
-</div>
+</nav>

@@ -32,7 +32,7 @@ a svg, .btn-hf svg {@apply h-6 w-6 }
   }
 }
 
-.drawer{ @apply border gap-1 bg-slate-500 text-white shadow-lg;
+.drawer{ @apply border gap-1 bg-slate-500 text-white shadow-lg h-full overflow-auto;
   &.dropdown ul{@apply relative -m-2 mt-0 bg-slate-200; width: -webkit-fill-available;}
   > li {@apply border-b hover:bg-white hover:text-black p-0} 
   > li:has(ul) {@apply flex-wrap; }
@@ -50,7 +50,7 @@ a svg, .btn-hf svg {@apply h-6 w-6 }
 html {scroll-behavior: smooth;}
 body{position:relative;}
 header{ @apply shadow-lg w-full bg-white;}
-main{ @apply gap-1 z-0;}
+main{ @apply z-0;}
 h1{ @apply font-semibold text-2xl;}
 .stroke-black{-webkit-text-stroke: 1px black;}
 li a{@apply block w-full p-1 px-3;}
@@ -61,49 +61,6 @@ a:has(svg){@apply p-2;}
   >*{@apply self-center p-2;}
   >.content{@apply bg-white w-11/12;}
   &.show{ @apply flex;}
-}
-
-body.layout-alt{@apply flex flex-row;
-  > nav{ @apply fixed text-xl min-w-fit z-40; height: -webkit-fill-available;
-    > a.nav-head{ @apply shadow-lg bg-slate-200;
-      > svg { @apply inset-x-0; }
-    }
-    >ul, >ul>li{@apply max-w-full;  }
-    > * svg{ @apply w-6 h-6;}
-    * > li.switch, 
-    * > label{@apply grow text-left text-base hidden; }
-
-    &.show li.switch, 
-    &:hover li.switch, 
-    &.show label, 
-    &:hover label{ @apply block; cursor:pointer;  }
-    &.show, &:hover { @apply w-9;
-      > a.nav-head{  
-        > svg {@apply relative right-0 inset-x-4; }
-      }
-      /* transition: width 3s ease-in;
-      -webkit-transition: width 3s ease-in; */
-    }
-    &.show {
-      > a.nav-head{  
-        > svg {
-          > path{fill: #C1C834!important;}
-          > path:first-child{fill: #38d134!important;}
-        }
-      }
-    }
-    
-  }
-  > .inav{@apply min-w-fit;}
-  
-  > main {@apply mt-0; 
-    > *:nth-child(n+2){margin-top:2.5em;}
-    > * .bbar{z-index:2; width:-webkit-fill-available; @apply absolute bg-white flex justify-between items-center px-2 h-10 border-b;}
-    > * .bbar~*{@apply mt-10;}
-  }  
-  > * header{ @apply h-10; width:-webkit-fill-available;
-    > div{ @apply min-h-full; }
-  }
 }
 
 .fField{ display: grid; grid-template-columns:1fr minmax(0, 4fr); gap:.3em; min-height:2em; @apply my-2;
@@ -192,4 +149,23 @@ body.layout-alt{@apply flex flex-row;
     }
     
   }
+}
+
+div.editor-layout{
+  grid-template-rows: auto 1fr auto; /* Row 1: auto, Row 2: 1fr, Row 3: auto */
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "header header"
+    "sidebar main"
+    "footer footer";
+  @apply grid;
+  >nav{ grid-area:sidebar; }
+  >main { grid-area:main;
+    @apply px-1 h-full overflow-auto; 
+  }  
+  >header{ grid-area: header;
+    width:-webkit-fill-available;
+    @apply h-10; 
+  }
+  >footer{ @apply h-7; grid-area: footer; }
 }
