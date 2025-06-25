@@ -1,0 +1,30 @@
+source: "products.json"
+primaryKey: "productId"
+dataSource: "file_storage"
+fields:
+  - name: "productId"
+    type: "string"
+    required: true
+    mapping: "id"
+  - name: "name"
+    type: "string"
+    required: true
+    mapping: "product_name"
+  - name: "description"
+    type: "string"
+    required: false
+    mapping: "description"
+  - name: "price"
+    type: "number"
+    required: true
+    mapping: "unit_price"
+  - name: "categories"
+    type: "array"
+    required: false
+    mapping: "category_list"
+  - name: "inStock"
+    type: "boolean"
+    required: true
+    mapping: "available"
+createdAt: "2025-06-25T10:50:00Z"
+updatedAt: "2025-06-25T10:50:00Z"

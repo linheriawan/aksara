@@ -1,97 +1,180 @@
-<!-- src/routes/wizard/+page.svelte -->
+<!-- src/routes/designer/data/+page.svelte -->
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { page } from '$app/stores';
-  import { invalidate } from '$app/navigation';
+  import { goto } from '$app/navigation';
+  import DataSourceStep from './DataSourceStep.svelte';
+  import ObjectMappingStep from './ObjectMappingStep.svelte';
+  import { STEPS } from "./conf";
+  import type { DataSource, ObjectDef } from "./conf";
 
-  let dataSources = ['mysql', 'rest', 'filesystem'];
-  let selectedSource = 'mysql';
-  let accessList: any[] = [];
-  let selectedAccess = '';
-  let accessConfig: any = {};
-  let objectName = '';
-  let objectFields: any = [];
-  let message = '';
-
+  // State
+  let currentStep = $state(1);
+  let dataSources = $state<DataSource[]>([]);
+  let objects = $state<ObjectDef[]>([]);
+  let dataSourceConfig = $state<DataSource | null>(null);
+  let isLoading = $state(false);
+  let error = $state<string | null>(null);
+  
+  // Derived state
+  const canProceed = $derived(currentStep < STEPS.length);
+  const canGoBack = $derived(currentStep > 1);
+  const currentStepData = $derived(STEPS[currentStep - 1]);
+  
+  // Load existing configurations on mount
   onMount(async () => {
-    const res = await fetch('/designer/data');
-    accessList = await res.json();
+    isLoading = true;
+    error = null;
+    
+    try {
+      const response = await fetch('/designer/data/load-configs');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      dataSources = data.configs || [];
+      objects = data.objects || [];
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to load configurations';
+      console.error('Error loading existing configurations:', err);
+    } finally {
+      isLoading = false;
+    }
   });
-
-  async function loadStructure() {
-    const res = await fetch('/designer/data', {
-      method: 'POST',
-      body: JSON.stringify({ "mode":"structure", selectedSource, accessConfig }),
-      headers: { 'Content-Type': 'application/json' }
-    });
-    objectFields = await res.json();
+  
+  // Navigation functions
+  function nextStep() {
+    if (canProceed) {
+      currentStep++;
+    }
   }
-
-  async function saveObject() {
-    const res = await fetch('/designer/data', {
-      method: 'POST',
-      body: JSON.stringify({ "mode":"save", objectName, fields: objectFields }),
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-    const result = await res.json();
-    message = result.message || 'Saved';
+  
+  function prevStep() {
+    if (canGoBack) {
+      currentStep--;
+    }
+  }
+  
+  // Event handlers
+  function handleDataSourceComplete(config: DataSource) {
+    dataSourceConfig = config;
+    nextStep();
+  }
+  
+  function handleObjectMappingBack() {
+    prevStep();
+  }
+  
+  async function handleWizardComplete(_objects: ObjectDef[]) {
+    if (!dataSourceConfig) {
+      error = 'No data source configuration found';
+      return;
+    }
+    
+    const finalConfig = {
+      dataSource: dataSourceConfig,
+      objects: _objects
+    };
+    
+    isLoading = true;
+    error = null;
+    
+    try {
+      const response = await fetch('/designer/data/save-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(finalConfig)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save configuration');
+      }
+      
+      // Success - navigate away
+      goto('/');
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to save configuration';
+      console.error('Error saving configuration:', err);
+    } finally {
+      isLoading = false;
+    }
   }
 </script>
 
-<div class="wizard p-6 max-w-3xl mx-auto space-y-6 bg-white rounded shadow">
-  <h2 class="text-2xl font-semibold">Data Access Wizard</h2>
-
-  <div class="step">
-    <label class="block font-medium">Choose Data Source:</label>
-    <select class="mt-1 p-2 border rounded w-full" bind:value={selectedSource}>
-      {#each dataSources as source}
-        <option value={source}>{source}</option>
-      {/each}
-    </select>
-  </div>
-
-  <div class="step">
-    {#if selectedSource === 'mysql'}
-      <div class="grid gap-2">
-        <label>MySQL Host:<input type="text" class="input" bind:value={accessConfig.host} /></label>
-        <label>User:<input type="text" class="input" bind:value={accessConfig.user} /></label>
-        <label>Password:<input type="password" class="input" bind:value={accessConfig.password} /></label>
-      </div>
-    {:else if selectedSource === 'rest'}
-      <div>
-        <label>API Base URL:<input type="text" class="input" bind:value={accessConfig.baseUrl} /></label>
-      </div>
-    {:else if selectedSource === 'filesystem'}
-      <div>
-        <label>JSON Directory:<input type="text" class="input" bind:value={accessConfig.path} /></label>
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-4xl mx-auto px-4">
+    <!-- Header -->
+    <div class="text-center">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Data Access Wizard</h1>
+    </div>
+    
+    <!-- Error Display -->
+    {#if error}
+      <div class="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md">
+        <p class="font-medium">Error:</p>
+        <p>{error}</p>
+        <button 
+          on:click={() => error = null}
+          class="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+        >
+          Dismiss
+        </button>
       </div>
     {/if}
-    <button class="btn mt-3" on:click={loadStructure}>Load Structure</button>
-  </div>
-
-  {#if objectFields.length}
-    <div class="step">
-      <label class="block font-medium">Object Name:</label>
-      <input type="text" class="input w-full" bind:value={objectName} />
-
-      <ul class="mt-4 space-y-1">
-        {#each objectFields as field}
-          <li class="text-sm text-gray-700">{field.name} ({field.type})</li>
-        {/each}
-      </ul>
-
-      <button class="btn mt-4" on:click={saveObject}>Save Object</button>
+    
+    <!-- Progress Bar -->
+    <div class="flex justify-center my-8">
+      {#each STEPS as step, i}
+        <div class="flex">
+          <div class="flex flex-col items-center">
+            <div class="flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors {
+              i + 1 <= currentStep 
+                ? 'bg-blue-600 border-blue-600 text-white' 
+                : 'border-gray-300 text-gray-400'
+            }">
+              {i + 1}
+            </div>
+            <span class="text-sm mt-1 {i + 1 <= currentStep ? 'text-blue-600 font-medium' : 'text-gray-500'}">{step.name}</span>
+          </div>
+          {#if i < STEPS.length - 1}
+            <div class="mt-4 w-16 h-1 mx-2 transition-colors {
+              i + 1 < currentStep ? 'bg-blue-600' : 'bg-gray-300'
+            }"></div>
+          {/if}
+        </div>
+      {/each}
     </div>
-  {/if}
-
-  {#if message}
-    <div class="alert mt-4">{message}</div>
-  {/if}
+    <div class="text-center mb-4">
+      <p class="text-gray-600">Step {currentStep} of {STEPS.length}: {currentStepData.name}</p>
+    </div>
+    
+    
+    <!-- Loading Overlay -->
+    {#if isLoading}
+      <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg flex items-center space-x-3">
+          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <span class="text-gray-700">Loading...</span>
+        </div>
+      </div>
+    {/if}
+    
+    <!-- Wizard Content -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+      {#if currentStep === 1}
+        <DataSourceStep 
+          dataSources={dataSources}
+          onComplete={handleDataSourceComplete}
+        />
+      {:else if currentStep === 2}
+        <ObjectMappingStep 
+          {dataSourceConfig}
+          Objects={objects}
+          onComplete={handleWizardComplete}
+          onBack={handleObjectMappingBack}
+        />
+      {/if}
+    </div>
+  </div>
 </div>
-
-<style>
-  .input { padding: 0.5rem; border: 1px solid #ccc; border-radius: 0.25rem; }
-  .btn { padding: 0.5rem 1rem; background: #2d6cdf; color: white; border-radius: 0.25rem; }
-  .alert { background: #e6ffed; padding: 1rem; border: 1px solid #b4f5c0; border-radius: 0.25rem; }
-</style>

@@ -1,4 +1,4 @@
-// src/routes/wizard/+server.ts
+// src/routes/designer/data/+server.ts
 import type { RequestHandler } from './$types';
 import fs from 'fs/promises';
 import path from 'path';

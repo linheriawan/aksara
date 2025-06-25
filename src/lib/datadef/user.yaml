@@ -1,0 +1,30 @@
+source: "users"
+primaryKey: "id"
+dataSource: "main_mysql"
+fields:
+  - name: "id"
+    type: "number"
+    required: true
+    mapping: "user_id"
+  - name: "email"
+    type: "string"
+    required: true
+    mapping: "email_address"
+  - name: "firstName"
+    type: "string"
+    required: true
+    mapping: "first_name"
+  - name: "lastName"
+    type: "string"
+    required: true
+    mapping: "last_name"
+  - name: "isActive"
+    type: "boolean"
+    required: false
+    mapping: "active_status"
+  - name: "createdAt"
+    type: "date"
+    required: true
+    mapping: "created_at"
+createdAt: "2025-06-25T10:45:00Z"
+updatedAt: "2025-06-25T10:45:00Z"

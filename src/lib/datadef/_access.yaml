@@ -1,2 +1,28 @@
-- Cars:
-  type: "file"
+dataSources:
+  - name: "main_mysql"
+    type: "mysql"
+    config:
+      server: "localhost"
+      port: "3306"
+      username: "user"
+      password: "password"
+      database: "myapp"
+    createdAt: "2025-06-25T10:30:00Z"
+    updatedAt: "2025-06-25T10:30:00Z"
+  
+  - name: "api_service"
+    type: "rest"
+    config:
+      baseUrl: "https://api.example.com"
+      authentication: "apikey"
+      apiKey: "your-api-key"
+    createdAt: "2025-06-25T10:35:00Z"
+    updatedAt: "2025-06-25T10:35:00Z"
+  
+  - name: "file_storage"
+    type: "filesystem"
+    config:
+      basePath: "./data"
+      format: "json"
+    createdAt: "2025-06-25T10:40:00Z"
+    updatedAt: "2025-06-25T10:40:00Z"
