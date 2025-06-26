@@ -7,8 +7,7 @@
         <slot name="act"/>
     </div>
 </div>
-<div class="grid grid-row-1 h-full overflow-scroll">
-    <div class="min-h-screen !px-0">
-        <slot/>
-    </div>
+<div class="h-full w-full max-h-full max-w-full overflow-scroll">
+    
+    <slot/>
 </div>  

@@ -110,10 +110,10 @@
     <TabNav {tabs} current={currentTab} onSelect={(id) => currentTab = id} />
   </svelte:fragment>
   <div slot="act">
-    <button class="btn-small border rounded-md px-2 hover:bg-blue-300" on:click={persist}>Save</button>
+    <button class="btn-small border rounded-md px-2 hover:bg-blue-300" onclick={persist}>Save</button>
   </div>
 
-  <div class="h-full grid-1aa gap-2 overflow-x-hidden">
+  <div class="h-full max-w-full overflow-hidden grid-1aa gap-2">
     <div>
     {#if currentTab === 'modules'}
       {#if routes.length === 0}
@@ -122,7 +122,7 @@
         {#each routes as parentRoute, pIndex}
           <details class="group border p-1 mb-1">
             <summary class="grid md:grid-cols-4 my-1 cursor-pointer items-center list-none"
-              on:click={() => selectItemForEdit('', pIndex)} >
+              onclick={() => selectItemForEdit('', pIndex)} >
               <div>name: {parentRoute.name}</div>
               <div>path: {parentRoute.path}</div>
               <div>icon: <IconRenderer name={parentRoute.icon}/></div>
@@ -133,11 +133,11 @@
             {#if parentRoute.children && parentRoute.children.length > 0}
               {#each parentRoute.children as childRoute, cIndex (childRoute.name)}
                 <div role="none" class="border grid md:grid-cols-4 my-1 cursor-pointer"
-                  on:click={() => selectItemForEdit(parentRoute.name, cIndex)} >
+                  onclick={() => selectItemForEdit(parentRoute.name, cIndex)} >
                   <div>name: {childRoute.name}</div>
                   <div>path: {childRoute.path}</div>
                   <div>icon: <IconRenderer name={childRoute.icon}/></div>
-                  <button class="text-red-500" on:click|stopPropagation={() => remove(parentRoute.name, cIndex)}>
+                  <button class="text-red-500" onclick={(e) =>{e.stopPropagation(); remove(parentRoute.name, cIndex)}}>
                     Delete
                   </button>
                 </div>

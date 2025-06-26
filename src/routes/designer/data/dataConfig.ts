@@ -1,32 +1,8 @@
-// src/lib/utils/dataConfig.ts
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+// src/route/designer/data/dataConfig.ts 
+import { readFileSync, existsSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import yaml from 'yaml';
-
-export interface DataSource {
-  name: string;
-  type: 'mysql' | 'rest' | 'filesystem';
-  config: any;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ObjectField {
-  name: string;
-  type: 'string' | 'number' | 'boolean' | 'date' | 'array' | 'object';
-  required: boolean;
-  mapping: string;
-}
-
-export interface ObjectDefinition {
-  name: string;
-  source: string;
-  primaryKey: string;
-  dataSource: string;
-  fields: ObjectField[];
-  createdAt: string;
-  updatedAt: string;
-}
+import type { DataSource, ObjectDef } from './conf';
 
 export interface AccessConfig {
   dataSources: DataSource[];
@@ -70,23 +46,46 @@ export class DataConfigManager {
   /**
    * Load all object definitions
    */
-  loadObjectDefinitions(): ObjectDefinition[] {
+  loadObjectDefinitions(): ObjectDef[] {
     if (!existsSync(this.dataDefPath)) {
       return [];
     }
 
-    const objects: ObjectDefinition[] = [];
-    const files = readdirSync(this.dataDefPath);
+    const objects: ObjectDef[] = [];
+    
+    // Load objects from datasource-specific directories
+    const dataSources = this.loadDataSources();
+    for (const dataSource of dataSources) {
+      const dsObjects = this.loadObjectsForDataSource(dataSource.name);
+      objects.push(...dsObjects);
+    }
+
+    return objects;
+  }
+
+  /**
+   * Load objects for a specific data source
+   */
+  loadObjectsForDataSource(dataSourceName: string): ObjectDef[] {
+    const dsPath = join(this.dataDefPath, dataSourceName);
+    
+    if (!existsSync(dsPath)) {
+      return [];
+    }
+
+    const objects: ObjectDef[] = [];
+    const files = readdirSync(dsPath);
 
     for (const file of files) {
-      if (file.endsWith('.yaml') && !file.startsWith('_')) {
+      if (file.endsWith('.yaml')) {
         try {
-          const content = readFileSync(join(this.dataDefPath, file), 'utf8');
-          const data = yaml.parse(content) as Omit<ObjectDefinition, 'name'>;
+          const content = readFileSync(join(dsPath, file), 'utf8');
+          const data = yaml.parse(content) as Omit<ObjectDef, 'name' | 'dataSource'>;
           
           if (data) {
             objects.push({
               name: file.replace('.yaml', ''),
+              dataSource: dataSourceName,
               ...data
             });
           }
@@ -100,10 +99,10 @@ export class DataConfigManager {
   }
 
   /**
-   * Load a specific object definition by name
+   * Load a specific object definition by name and data source
    */
-  loadObjectDefinition(name: string): ObjectDefinition | null {
-    const objectPath = join(this.dataDefPath, `${name}.yaml`);
+  loadObjectDefinition(name: string, dataSourceName: string): ObjectDef | null {
+    const objectPath = join(this.dataDefPath, dataSourceName, `${name}.yaml`);
     
     if (!existsSync(objectPath)) {
       return null;
@@ -111,9 +110,9 @@ export class DataConfigManager {
 
     try {
       const content = readFileSync(objectPath, 'utf8');
-      const data = yaml.parse(content) as Omit<ObjectDefinition, 'name'>;
+      const data = yaml.parse(content) as Omit<ObjectDef, 'name' | 'dataSource'>;
       
-      return data ? { name, ...data } : null;
+      return data ? { name, dataSource: dataSourceName, ...data } : null;
     } catch (error) {
       console.error(`Error loading object definition ${name}:`, error);
       return null;
@@ -121,82 +120,89 @@ export class DataConfigManager {
   }
 
   /**
-   * Get object definition with its data source configuration
+   * Save object definition to datasource-specific directory
    */
-  getObjectWithDataSource(objectName: string): {
-    object: ObjectDefinition;
-    dataSource: DataSource;
-  } | null {
-    const object = this.loadObjectDefinition(objectName);
-    if (!object) return null;
+  saveObjectDefinition(object: ObjectDef): void {
+    const dsPath = join(this.dataDefPath, object.dataSource);
+    
+    // Ensure datasource directory exists
+    if (!existsSync(dsPath)) {
+      mkdirSync(dsPath, { recursive: true });
+    }
 
-    const dataSource = this.loadDataSource(object.dataSource);
-    if (!dataSource) return null;
-
-    return { object, dataSource };
+    const objectPath = join(dsPath, `${object.name}.yaml`);
+    
+    // Remove name and dataSource from object since they're in the path
+    const { name, dataSource, ...objectData } = object;
+    
+    const yamlContent = yaml.stringify(objectData);
+    writeFileSync(objectPath, yamlContent, 'utf8');
   }
 
   /**
-   * Validate object definition
+   * Check if object exists in specific datasource
    */
-  validateObjectDefinition(object: Partial<ObjectDefinition>): string[] {
-    const errors: string[] = [];
-
-    if (!object.name) {
-      errors.push('Object name is required');
-    }
-
-    if (!object.source) {
-      errors.push('Source is required');
-    }
-
-    if (!object.dataSource) {
-      errors.push('Data source is required');
-    }
-
-    if (!object.fields || object.fields.length === 0) {
-      errors.push('At least one field is required');
-    }
-
-    if (object.fields) {
-      object.fields.forEach((field, index) => {
-        if (!field.name) {
-          errors.push(`Field ${index + 1}: name is required`);
-        }
-        if (!field.type) {
-          errors.push(`Field ${index + 1}: type is required`);
-        }
-        if (!field.mapping) {
-          errors.push(`Field ${index + 1}: mapping is required`);
-        }
-      });
-    }
-
-    return errors;
-  }
-
-  /**
-   * Check if object name already exists
-   */
-  objectExists(name: string): boolean {
-    const objectPath = join(this.dataDefPath, `${name}.yaml`);
+  objectExists(name: string, dataSourceName: string): boolean {
+    const objectPath = join(this.dataDefPath, dataSourceName, `${name}.yaml`);
     return existsSync(objectPath);
   }
 
   /**
-   * Get available object names
+   * Get object definition with change tracking
    */
-  getAvailableObjects(): string[] {
-    return this.loadObjectDefinitions().map(obj => obj.name);
-  }
+  getObjectWithChanges(objectName: string, dataSourceName: string, newObject: ObjectDef): {
+    object: ObjectDef;
+    isNew: boolean;
+    changes: {
+      newFields: string[];
+      removedFields: string[];
+      modifiedFields: string[];
+    };
+  } {
+    const existingObject = this.loadObjectDefinition(objectName, dataSourceName);
+    const isNew = !existingObject;
+    
+    let changes = {
+      newFields: [] as string[],
+      removedFields: [] as string[],
+      modifiedFields: [] as string[]
+    };
 
-  /**
-   * Get objects by data source
-   */
-  getObjectsByDataSource(dataSourceName: string): ObjectDefinition[] {
-    return this.loadObjectDefinitions().filter(obj => obj.dataSource === dataSourceName);
+    if (!isNew && existingObject) {
+      const existingFieldNames = new Set(existingObject.fields.map(f => f.name));
+      const newFieldNames = new Set(newObject.fields.map(f => f.name));
+      
+      // Find new fields
+      changes.newFields = newObject.fields
+        .filter(f => !existingFieldNames.has(f.name))
+        .map(f => f.name);
+      
+      // Find removed fields
+      changes.removedFields = existingObject.fields
+        .filter(f => !newFieldNames.has(f.name))
+        .map(f => f.name);
+      
+      // Find modified fields
+      changes.modifiedFields = newObject.fields
+        .filter(newField => {
+          const existingField = existingObject.fields.find(f => f.name === newField.name);
+          return existingField && (
+            existingField.type !== newField.type ||
+            existingField.required !== newField.required ||
+            existingField.mapping !== newField.mapping
+          );
+        })
+        .map(f => f.name);
+    }
+
+    return {
+      object: newObject,
+      isNew,
+      changes
+    };
   }
 }
 
 // Export singleton instance
 export const dataConfigManager = new DataConfigManager();
+  

@@ -6,6 +6,7 @@
   // export let onComplete: (config: DataSource) => void;
   const { dataSources = [], onComplete } = $props<{
       dataSources?: DataSource[];
+      selectedDataSource:DataSource|null;
       onComplete: (config: DataSource) => void;
   }>();
   // State
@@ -163,8 +164,6 @@
 </script>
 
 <div>
-  <h2 class="text-2xl font-semibold mb-6">Configure Data Source</h2>
-  
   <!-- Use Existing or Create New -->
   <div class="mb-6">
     <label class="flex items-center mb-4 cursor-pointer">

@@ -25,30 +25,29 @@ let isResizing=$state(false);
 
 <style>
   .resize-handle { cursor: ew-resize; width: 2px; }
-  .floating-panel { transition: transform 0.3s ease; will-change: transform; }
 </style>
 
 <div class="relative h-full">
-  <aside class="top-0 left-0 shadow-xl z-40 h-full bg-white
-      {isPinned ? 'relative' : 'absolute floating-panel'}"
-    style="width:{width}px;
-      transform: translateX({!isPinned && !isVisible ? `${width}px` : '0'});"
-    on:mouseenter={() => !isPinned && (isVisible = true)}
-    on:mouseleave={() => !isPinned && (isVisible = false)} >
+  <aside class="top-0 right-0 shadow-xl z-40 h-full bg-white
+      {isPinned ? 'relative' : 'absolute floating-panel '}"
+    onmouseenter={() => !isPinned && (isVisible = true)}
+    onmouseleave={() => !isPinned && (isVisible = false)} 
+    style="width:{width}px; 
+      {!isPinned && !isVisible ? `transform: translateX(${width}px)` : 'transform: translateX(0px)'};">
     <div class="flex justify-between items-center text-sm text-white bg-gray-600 px-2">
       <h2 class="font-semibold">{name}</h2>
       <div>
-        <button on:click={togglePin} class="" title={isPinned ? "Unpin" : "Pin"}>
+        <button onclick={togglePin} class="" title={isPinned ? "Pin": "Unpin"}>
         {isPinned ? '📍' : '📌'}
         </button>
       </div>
     </div>
     <slot />
-    <div class="h-full absolute left-0 top-0 resize-handle bg-gray-500" on:mousedown={onMouseDown}></div>
-    {#if !isVisible}
-    <button on:click={togglePanel}
+    <div class="h-full absolute left-0 top-0 resize-handle bg-gray-500" onmousedown={onMouseDown}></div>
+    {#if !isPinned}
+    <button onclick={togglePanel}
         class="absolute top-0 -left-4 text-sm text-white p-0 px-1 rounded-l bg-gray-600">
-        {isVisible ? '▶' : '◀'}
+        {isVisible ? '▶':'◀'}
     </button>
     {/if}
   </aside>

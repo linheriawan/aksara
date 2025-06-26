@@ -1,8 +1,9 @@
-// src/lib/utils/dataAccess.ts
+// src/route/designer/data/dataAccess.ts
+
 import mysql from 'mysql2/promise';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import type { DataSource, ObjectDef } from './conf.ts';
+import type { DataSource, ObjectDef, FS_DBconf, FS_APIconf, FS_DSconf } from './conf';
 
 export class DataAccessManager {
   /**
@@ -13,12 +14,13 @@ export class DataAccessManager {
       throw new Error('Data source is not MySQL');
     }
 
+    const config = dataSource.config as FS_DBconf;
     const connection = await mysql.createConnection({
-      host: dataSource.config.server,
-      port: parseInt(dataSource.config.port) || 3306,
-      user: dataSource.config.username,
-      password: dataSource.config.password,
-      database: dataSource.config.database
+      host: config.server,
+      port: parseInt(config.port) || 3306,
+      user: config.username,
+      password: config.password,
+      database: config.database
     });
 
     try {
@@ -37,19 +39,20 @@ export class DataAccessManager {
       throw new Error('Data source is not REST API');
     }
 
+    const config = dataSource.config as FS_APIconf;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...options.headers as Record<string, string>
     };
 
-    if (dataSource.config.authentication === 'apikey' && dataSource.config.apiKey) {
-      headers['Authorization'] = `Bearer ${dataSource.config.apiKey}`;
-    } else if (dataSource.config.authentication === 'basic' && dataSource.config.username && dataSource.config.password) {
-      const auth = Buffer.from(`${dataSource.config.username}:${dataSource.config.password}`).toString('base64');
+    if (config.authentication === 'apikey' && config.apiKey) {
+      headers['Authorization'] = `Bearer ${config.apiKey}`;
+    } else if (config.authentication === 'basic' && config.username && config.password) {
+      const auth = Buffer.from(`${config.username}:${config.password}`).toString('base64');
       headers['Authorization'] = `Basic ${auth}`;
     }
 
-    const url = `${dataSource.config.baseUrl}/${endpoint}`.replace(/\/+/g, '/').replace(':/', '://');
+    const url = `${config.baseUrl}/${endpoint}`.replace(/\/+/g, '/').replace(':/', '://');
     
     const response = await fetch(url, {
       ...options,
@@ -70,16 +73,18 @@ export class DataAccessManager {
     if (dataSource.type !== 'filesystem') {
       throw new Error('Data source is not file system');
     }
-    const filePath = join(dataSource.config.basePath, filename);
+
+    const config = dataSource.config as FS_DSconf;
+    const filePath = join(config.basePath, filename);
     
     try {
       const content = readFileSync(filePath, 'utf8');
       
-      if (dataSource.config.format === 'json') {
+      if (config.format === 'json') {
         return JSON.parse(content);
       }
       
-      throw new Error(`Unsupported file format: ${dataSource.config.format}`);
+      throw new Error(`Unsupported file format: ${config.format}`);
     } catch (error) {
       throw new Error(`Error reading file ${filename}: ${JSON.stringify(error)}`);
     }

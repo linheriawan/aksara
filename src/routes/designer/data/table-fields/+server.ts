@@ -1,8 +1,9 @@
-// src/routes/api/wizard/table-fields/+server.ts
+// src/routes/designer/data/table-fields/+server.ts
 import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 import mysql from 'mysql2/promise';
 
-export async function POST({ request }) {
+export const POST: RequestHandler = async ({ request }) => {
   try {
     const { config, table } = await request.json();
     
@@ -13,44 +14,40 @@ export async function POST({ request }) {
       password: config.password,
       database: config.database
     });
-    
-    const [columns] = await connection.execute(
-      'SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?',
-      [config.database, table]
-    );
-    
-    const fields = (columns as any[]).map(col => ({
-      name: col.COLUMN_NAME,
-      type: mapMySQLType(col.DATA_TYPE),
-      required: col.IS_NULLABLE === 'NO'
-    }));
-    
-    await connection.end();
-    
-    return json({ success: true, fields });
+
+    try {
+      const [rows] = await connection.execute(`DESCRIBE ${table}`);
+      const fields = (rows as any[]).map(row => ({
+        name: row.Field,
+        type: mapMySQLType(row.Type),
+        required: row.Null === 'NO',
+        mapping: row.Field
+      }));
+
+      return json({ success: true, fields });
+    } finally {
+      await connection.end();
+    }
   } catch (error) {
-    return json({ success: false, message: error });
+    console.error('Error fetching table fields:', error);
+    return json({ 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Failed to fetch table fields'
+    }, { status: 500 });
   }
-}
+};
 
 function mapMySQLType(mysqlType: string): string {
-  const typeMap: Record<string, string> = {
-    'varchar': 'string',
-    'char': 'string',
-    'text': 'string',
-    'longtext': 'string',
-    'int': 'number',
-    'bigint': 'number',
-    'decimal': 'number',
-    'float': 'number',
-    'double': 'number',
-    'boolean': 'boolean',
-    'tinyint': 'boolean',
-    'date': 'date',
-    'datetime': 'date',
-    'timestamp': 'date',
-    'json': 'object'
-  };
-  
-  return typeMap[mysqlType.toLowerCase()] || 'string';
+  const type = mysqlType.toLowerCase();
+  if (type.includes('int') || type.includes('decimal') || type.includes('float') || type.includes('double')) {
+    return 'number';
+  } else if (type.includes('bool') || type.includes('bit')) {
+    return 'boolean';
+  } else if (type.includes('date') || type.includes('time')) {
+    return 'date';
+  } else if (type.includes('json')) {
+    return 'object';
+  } else {
+    return 'string';
+  }
 }

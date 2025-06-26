@@ -305,7 +305,7 @@ const importJson = (e: Event) => {
 
 {#if currentTab === 'canvas'}
 
-<div class="grid gap-1" style="grid-template-columns:auto 3fr 1fr auto">
+<div class="grid gap-1 max-w-full overflow-hidden" style="grid-template-columns:auto 3fr 1fr auto">
   <PanelLeft name="Palette" width={100} isPinned={true}>
     <div class="grid gap-1 p-2">
       {#each PALETTE_ITEMS as item}

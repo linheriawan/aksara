@@ -1,6 +1,7 @@
 // src/routes/designer/data/[object]/+server.ts
 import { json } from '@sveltejs/kit';
-import { dataConfigManager, dataAccessManager } from '../dataConfig.ts';
+import { dataConfigManager } from '../dataConfig.ts';
+import { dataAccessManager } from '../dataAccess.ts';
 
 export async function GET({ params, url }) {
   try {
@@ -33,7 +34,7 @@ export async function GET({ params, url }) {
         return json({ error: 'Unsupported data source type' }, { status: 400 });
     }
 
-    // Map raw data to object definition
+    // Map raw data to object definition 
     const mappedData = dataAccessManager.mapDataToObject(rawData, object);
 
     return json({
@@ -43,7 +44,7 @@ export async function GET({ params, url }) {
     });
   } catch (error) {
     console.error('Error fetching data:', error);
-    return json({ error: error.message }, { status: 500 });
+    return json({ error: error }, { status: 500 });
   }
 }
 
@@ -91,7 +92,7 @@ export async function POST({ params, request }) {
         break;
         
       case 'rest':
-        await dataAccessManager.queryREST(dataSource, object);
+        await dataAccessManager.queryREST(dataSource, object.name);
 
         break;
     }
