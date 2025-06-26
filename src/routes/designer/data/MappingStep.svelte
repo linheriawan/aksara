@@ -1,6 +1,6 @@
 <!-- src/routes/designer/data/MappingStep.svelte -->
 <script lang="ts">
-import type {DataSource, ObjectDef, Field} from "./conf"
+import type {DataSource, ObjectDef, ObjField} from "./conf"
 
 const { 
   dataSourceConfig, 
@@ -39,7 +39,7 @@ const canSave = $derived(
 );
 
 // Field template
-const fieldTemplate: Field = { name: '', type: 'string', required: false, mapping: '' };
+const fieldTemplate: ObjField = { name: '', type: 'string', required: false, mapping: '' };
 
 function addField() {
   object.fields = [...object.fields, { ...fieldTemplate }];

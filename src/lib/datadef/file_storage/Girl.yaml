@@ -1,0 +1,15 @@
+source: girls.json
+fields:
+  - name: id
+    type: number
+    required: false
+    mapping: id
+  - name: Name
+    type: string
+    required: false
+    mapping: name
+  - name: description
+    type: string
+    required: false
+    mapping: desc
+primaryKey: id

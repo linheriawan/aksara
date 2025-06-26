@@ -1,6 +1,6 @@
 <!-- src/routes/designer/data/DataSourceStep.svelte -->
 <script lang="ts">
-  import type { DataSource, FS_DBconf, FS_APIconf, FS_DSconf } from "./conf";
+  import type { DataSource, DS_DBConf, DS_APIConf, DS_FSConf } from "./conf";
   // Props
   // export let dataSources: DataSource[] = [];
   // export let onComplete: (config: DataSource) => void;
@@ -19,7 +19,7 @@
   let tableSchema = $state<string[]>([]);
 
   // Configuration states with proper typing
-  let mysqlConfig = $state<FS_DBconf>({
+  let mysqlConfig = $state<DS_DBConf>({
     server: '',
     port: '3306',
     username: '',
@@ -27,7 +27,7 @@
     database: ''
   });
 
-  let apiConfig = $state<FS_APIconf & {username?: string, password?: string}>({
+  let apiConfig = $state<DS_APIConf & {username?: string, password?: string}>({
     baseUrl: '',
     authentication: 'none',
     apiKey: '',
@@ -35,7 +35,7 @@
     password: ''
   });
 
-  let fileConfig = $state<FS_DSconf>({
+  let fileConfig = $state<DS_FSConf>({
     basePath: './data',
     format: 'json'
   });
@@ -63,13 +63,13 @@
       // Update config objects based on type
       switch (selectedConfig.type) {
         case 'mysql':
-          mysqlConfig = { ...selectedConfig.config as FS_DBconf };
+          mysqlConfig = { ...selectedConfig.config as DS_DBConf };
           break;
         case 'rest':
-          apiConfig = { ...selectedConfig.config as FS_APIconf };
+          apiConfig = { ...selectedConfig.config as DS_APIConf };
           break;
         case 'filesystem':
-          fileConfig = { ...selectedConfig.config as FS_DSconf };
+          fileConfig = { ...selectedConfig.config as DS_FSConf };
           break;
       }
     }
@@ -116,7 +116,7 @@
     }
   }
 
-  function getConfigForType(): FS_DBconf | FS_APIconf | FS_DSconf {
+  function getConfigForType(): DS_DBConf | DS_APIConf | DS_FSConf {
     switch (selectedType) {
       case 'mysql':
         return mysqlConfig;

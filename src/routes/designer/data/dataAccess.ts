@@ -3,7 +3,7 @@
 import mysql from 'mysql2/promise';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import type { DataSource, ObjectDef, FS_DBconf, FS_APIconf, FS_DSconf } from './conf';
+import type { DataSource, ObjectDef, DS_DBConf, DS_APIConf, DS_FSConf } from './conf';
 
 export class DataAccessManager {
   /**
@@ -14,7 +14,7 @@ export class DataAccessManager {
       throw new Error('Data source is not MySQL');
     }
 
-    const config = dataSource.config as FS_DBconf;
+    const config = dataSource.config as DS_DBConf;
     const connection = await mysql.createConnection({
       host: config.server,
       port: parseInt(config.port) || 3306,
@@ -39,7 +39,7 @@ export class DataAccessManager {
       throw new Error('Data source is not REST API');
     }
 
-    const config = dataSource.config as FS_APIconf;
+    const config = dataSource.config as DS_APIConf;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...options.headers as Record<string, string>
@@ -74,7 +74,7 @@ export class DataAccessManager {
       throw new Error('Data source is not file system');
     }
 
-    const config = dataSource.config as FS_DSconf;
+    const config = dataSource.config as DS_FSConf;
     const filePath = join(config.basePath, filename);
     
     try {

@@ -1,6 +1,5 @@
 source: "products.json"
 primaryKey: "productId"
-dataSource: "file_storage"
 fields:
   - name: "productId"
     type: "string"

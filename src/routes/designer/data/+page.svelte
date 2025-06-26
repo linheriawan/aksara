@@ -78,17 +78,21 @@ onMount(async () => {
 });
 
 // Reload objects when data source changes
-$effect(async () => {
-  if (dataSourceConfig) {
-    try {
-      const response = await fetch(`/designer/data/load-configs?dataSource=${dataSourceConfig.name}`);
-      if (response.ok) {
-        const data = await response.json();
-        objects = data.objects || [];
+$effect(() => {
+  if (dataSourceConfig && currentStep === 2) {
+    async function loadObjects() {
+      try {
+        const response = await fetch(`/designer/data/load-configs?dataSource=${dataSourceConfig?.name}`);
+        if (response.ok) {
+          const data = await response.json();
+          objects = data.objects || [];
+        }
+      } catch (err) {
+        console.error('Error loading data source objects:', err);
       }
-    } catch (err) {
-      console.error('Error loading data source objects:', err);
     }
+    
+    loadObjects();
   }
 });
 
@@ -106,8 +110,21 @@ function prevStep() {
 }
 
 // Event handlers for step 1: Data Source
-function handleDataSourceComplete(config: DataSource) {
+async function handleDataSourceComplete(config: DataSource) {
   dataSourceConfig = config;
+  
+  // Load objects for this specific data source
+  try {
+    const response = await fetch(`/designer/data/load-configs?dataSource=${config.name}`);
+    if (response.ok) {
+      const data = await response.json();
+      objects = data.objects || [];
+    }
+  } catch (err) {
+    console.error('Error loading data source objects:', err);
+    objects = [];
+  }
+  
   nextStep();
 }
 
@@ -123,6 +140,9 @@ function handleNewObject(newObject: ObjectDef) {
 }
 
 function handleObjectSelectionBack() {
+  // Clear objects when going back to data source selection
+  objects = [];
+  currentObject = null;
   prevStep();
 }
 

@@ -1,6 +1,6 @@
 <!-- src/routes/designer/data/ConfigurationReview.svelte -->
 <script lang="ts">
-import type {Field, DataSource, ObjectDef} from "./conf"
+import type {DataSource, ObjectDef,ObjField, DS_DBConf, DS_APIConf, DS_FSConf} from "./conf"
 
 const { 
   dataSourceConfig, 
@@ -16,6 +16,41 @@ const {
 
 // State
 let isProcessing = $state(false);
+let changeInfo = $state<{
+  isNew: boolean;
+  changes: {
+    newFields: string[];
+    removedFields: string[];
+    modifiedFields: string[];
+  };
+} | null>(null);
+
+// Load change information
+$effect(() => {
+  if (currentObject && dataSourceConfig) {
+    async function loadChanges() {
+      try {
+        const response = await fetch('/designer/data/analyze-changes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            objectName: currentObject.name,
+            dataSourceName: dataSourceConfig.name,
+            newObject: currentObject
+          })
+        });
+        
+        if (response.ok) {
+          changeInfo = await response.json();
+        }
+      } catch (error) {
+        console.error('Error analyzing changes:', error);
+      }
+    }
+    
+    loadChanges();
+  }
+});
 
 // Derived state
 const canComplete = $derived(
@@ -27,7 +62,7 @@ const totalFields = $derived(
 );
 
 const requiredFields = $derived(
-  currentObject?.fields.filter((f:Field) => f.required).length || 0
+  currentObject?.fields.filter((f:ObjField) => f.required).length || 0
 );
 
 const hasPrimaryKey = $derived(
@@ -126,7 +161,7 @@ function getFieldTypeIcon(type: string): string {
         <label class="block text-sm font-medium text-gray-700 mb-2">Connection Details</label>
         <div class="bg-gray-50 rounded-md p-4">
           {#if dataSourceConfig.type === 'mysql'}
-            {@const mysqlConfig = dataSourceConfig.config as import('./conf').FS_DBconf}
+            {@const mysqlConfig = dataSourceConfig.config as DS_DBConf}
             <div class="grid grid-cols-2 gap-4 text-sm">
               <div><span class="font-medium">Server:</span> {mysqlConfig.server}</div>
               <div><span class="font-medium">Port:</span> {mysqlConfig.port}</div>
@@ -134,13 +169,13 @@ function getFieldTypeIcon(type: string): string {
               <div><span class="font-medium">Username:</span> {mysqlConfig.username}</div>
             </div>
           {:else if dataSourceConfig.type === 'rest'}
-            {@const restConfig = dataSourceConfig.config as import('./conf').FS_APIconf}
+            {@const restConfig = dataSourceConfig.config as DS_APIConf}
             <div class="grid grid-cols-1 gap-2 text-sm">
               <div><span class="font-medium">Base URL:</span> {restConfig.baseUrl}</div>
               <div><span class="font-medium">Authentication:</span> {restConfig.authentication}</div>
             </div>
           {:else if dataSourceConfig.type === 'filesystem'}
-            {@const fsConfig = dataSourceConfig.config as import('./conf').FS_DSconf}
+            {@const fsConfig = dataSourceConfig.config as DS_FSConf}
             <div class="grid grid-cols-1 gap-2 text-sm">
               <div><span class="font-medium">Base Path:</span> {fsConfig.basePath}</div>
               <div><span class="font-medium">Format:</span> {fsConfig.format}</div>
@@ -151,16 +186,25 @@ function getFieldTypeIcon(type: string): string {
     </div>
   {/if}
 
-  <!-- Objects Configuration -->
-  <div class="bg-white rounded-lg shadow-sm border p-6">
-    <h3 class="text-lg font-semibold mb-4 flex items-center">
-      <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2-5l4-4M7.835 8.17l4.83-4.83" />
-      </svg>
-      Object Configuration: {currentObject?.name || 'No Object'}
-    </h3>
-    
-    {#if currentObject}
+  <!-- Object Configuration -->
+  {#if currentObject}
+    <div class="bg-white rounded-lg shadow-sm border p-6">
+      <h3 class="text-lg font-semibold mb-4 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2-5l4-4M7.835 8.17l4.83-4.83" />
+        </svg>
+        Object Configuration: {currentObject.name}
+        {#if changeInfo?.isNew}
+          <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            New Object
+          </span>
+        {:else if changeInfo && (changeInfo.changes.newFields.length > 0 || changeInfo.changes.removedFields.length > 0 || changeInfo.changes.modifiedFields.length > 0)}
+          <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+            Modified
+          </span>
+        {/if}
+      </h3>
+      
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Object Name</label>
@@ -184,7 +228,42 @@ function getFieldTypeIcon(type: string): string {
 
       <!-- Fields List -->
       <div>
-        <h4 class="text-md font-medium mb-3">Field Mappings ({currentObject.fields.length})</h4>
+        <h4 class="text-md font-medium mb-3">
+          Field Mappings ({currentObject.fields.length})
+          {#if changeInfo && !changeInfo.isNew}
+            <span class="text-sm text-gray-500 ml-2">
+              ({changeInfo.changes.newFields.length} new, {changeInfo.changes.modifiedFields.length} modified, {changeInfo.changes.removedFields.length} removed)
+            </span>
+          {/if}
+        </h4>
+        
+        <!-- Change Summary -->
+        {#if changeInfo && !changeInfo.isNew && (changeInfo.changes.newFields.length > 0 || changeInfo.changes.removedFields.length > 0 || changeInfo.changes.modifiedFields.length > 0)}
+          <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <div class="flex">
+              <svg class="flex-shrink-0 h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-yellow-800">Configuration Changes Detected</h3>
+                <div class="mt-2 text-sm text-yellow-700">
+                  <ul class="list-disc pl-5 space-y-1">
+                    {#if changeInfo.changes.newFields.length > 0}
+                      <li><strong>New fields:</strong> {changeInfo.changes.newFields.join(', ')}</li>
+                    {/if}
+                    {#if changeInfo.changes.modifiedFields.length > 0}
+                      <li><strong>Modified fields:</strong> {changeInfo.changes.modifiedFields.join(', ')}</li>
+                    {/if}
+                    {#if changeInfo.changes.removedFields.length > 0}
+                      <li><strong>Removed fields:</strong> {changeInfo.changes.removedFields.join(', ')}</li>
+                    {/if}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        {/if}
+        
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
@@ -193,11 +272,14 @@ function getFieldTypeIcon(type: string): string {
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source Mapping</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Required</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
               {#each currentObject.fields as field}
-                <tr>
+                {@const isNew = changeInfo?.changes.newFields.includes(field.name)}
+                {@const isModified = changeInfo?.changes.modifiedFields.includes(field.name)}
+                <tr class="{isNew ? 'bg-green-50' : isModified ? 'bg-yellow-50' : ''}">
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {field.name}
                   </td>
@@ -218,6 +300,21 @@ function getFieldTypeIcon(type: string): string {
                     {:else}
                       <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                         Optional
+                      </span>
+                    {/if}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {#if isNew}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        New
+                      </span>
+                    {:else if isModified}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        Modified
+                      </span>
+                    {:else}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        Unchanged
                       </span>
                     {/if}
                   </td>
@@ -265,7 +362,9 @@ function getFieldTypeIcon(type: string): string {
           </div>
         </div>
       </div>
-    {:else}
+    </div>
+  {:else}
+    <div class="bg-white rounded-lg shadow-sm border p-6">
       <div class="text-center py-8 text-gray-500">
         <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 48 48">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m-6 4h6m6-8h6m-6 4h6m-6 4h6" />
@@ -273,8 +372,8 @@ function getFieldTypeIcon(type: string): string {
         <p class="text-lg font-medium">No object configuration found</p>
         <p class="mt-1">Please complete the previous steps to configure your object</p>
       </div>
-    {/if}
-  </div>
+    </div>
+  {/if}
 
   <!-- Final Actions -->
   <div class="flex justify-between pt-4 border-t">
