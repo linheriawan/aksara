@@ -1,6 +1,6 @@
 <!-- src/routes/designer/data/ConfigurationReview.svelte -->
 <script lang="ts">
-import type {DataSource, ObjectDef,ObjField, DS_DBConf, DS_APIConf, DS_FSConf} from "./conf"
+import type {DataSource, ObjectDef, ObjField} from "./conf"
 
 const { 
   dataSourceConfig, 
@@ -62,7 +62,7 @@ const totalFields = $derived(
 );
 
 const requiredFields = $derived(
-  currentObject?.fields.filter((f:ObjField) => f.required).length || 0
+  currentObject?.fields.filter((f: ObjField) => f.required).length || 0
 );
 
 const hasPrimaryKey = $derived(
@@ -161,7 +161,7 @@ function getFieldTypeIcon(type: string): string {
         <label class="block text-sm font-medium text-gray-700 mb-2">Connection Details</label>
         <div class="bg-gray-50 rounded-md p-4">
           {#if dataSourceConfig.type === 'mysql'}
-            {@const mysqlConfig = dataSourceConfig.config as DS_DBConf}
+            {@const mysqlConfig = dataSourceConfig.config as import('./conf').DS_DBConf}
             <div class="grid grid-cols-2 gap-4 text-sm">
               <div><span class="font-medium">Server:</span> {mysqlConfig.server}</div>
               <div><span class="font-medium">Port:</span> {mysqlConfig.port}</div>
@@ -169,13 +169,13 @@ function getFieldTypeIcon(type: string): string {
               <div><span class="font-medium">Username:</span> {mysqlConfig.username}</div>
             </div>
           {:else if dataSourceConfig.type === 'rest'}
-            {@const restConfig = dataSourceConfig.config as DS_APIConf}
+            {@const restConfig = dataSourceConfig.config as import('./conf').DS_APIConf}
             <div class="grid grid-cols-1 gap-2 text-sm">
               <div><span class="font-medium">Base URL:</span> {restConfig.baseUrl}</div>
               <div><span class="font-medium">Authentication:</span> {restConfig.authentication}</div>
             </div>
           {:else if dataSourceConfig.type === 'filesystem'}
-            {@const fsConfig = dataSourceConfig.config as DS_FSConf}
+            {@const fsConfig = dataSourceConfig.config as import('./conf').DS_FSConf}
             <div class="grid grid-cols-1 gap-2 text-sm">
               <div><span class="font-medium">Base Path:</span> {fsConfig.basePath}</div>
               <div><span class="font-medium">Format:</span> {fsConfig.format}</div>
@@ -276,24 +276,24 @@ function getFieldTypeIcon(type: string): string {
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              {#each currentObject.fields as field}
-                {@const isNew = changeInfo?.changes.newFields.includes(field.name)}
-                {@const isModified = changeInfo?.changes.modifiedFields.includes(field.name)}
+              {#each currentObject.fields as objField}
+                {@const isNew = changeInfo?.changes.newFields.includes(objField.name)}
+                {@const isModified = changeInfo?.changes.modifiedFields.includes(objField.name)}
                 <tr class="{isNew ? 'bg-green-50' : isModified ? 'bg-yellow-50' : ''}">
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {field.name}
+                    {objField.name}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <span class="inline-flex items-center">
-                      <span class="mr-1">{getFieldTypeIcon(field.type)}</span>
-                      {field.type}
+                      <span class="mr-1">{getFieldTypeIcon(objField.type)}</span>
+                      {objField.type}
                     </span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                    {field.mapping}
+                    {objField.mapping}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {#if field.required}
+                    {#if objField.required}
                       <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                         Required
                       </span>

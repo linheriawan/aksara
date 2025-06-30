@@ -1,14 +1,13 @@
 <!-- src/routes/designer/data/DataSourceStep.svelte -->
 <script lang="ts">
   import type { DataSource, DS_DBConf, DS_APIConf, DS_FSConf } from "./conf";
-  // Props
-  // export let dataSources: DataSource[] = [];
-  // export let onComplete: (config: DataSource) => void;
-  const { dataSources = [], onComplete } = $props<{
+  
+  const { dataSources = [], onComplete, selectedDataSource } = $props<{
       dataSources?: DataSource[];
-      selectedDataSource:DataSource|null;
+      selectedDataSource: DataSource | null;
       onComplete: (config: DataSource) => void;
   }>();
+  
   // State
   let selectedType = $state<DataSource['type'] | ''>('');
   let configName = $state('');
@@ -43,7 +42,7 @@
   // Derived state
   const hasExistingConfigs = $derived(dataSources.length > 0);
   const selectedConfig = $derived(
-    selectedExisting ? dataSources.find((c:DataSource) => c.name === selectedExisting) : null
+    selectedExisting ? dataSources.find((c: DataSource) => c.name === selectedExisting) : null
   );
   const canTest = $derived(
     selectedType && selectedType !== 'filesystem' && !useExisting

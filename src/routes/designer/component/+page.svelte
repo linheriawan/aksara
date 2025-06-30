@@ -8,6 +8,25 @@
   import Select  from '$lib/components/inp/select.svelte';
   import Dynagrid  from '$lib/components/sct/dynagrid.svelte';
   import { alerting } from '$lib/stores/notif';
+  import InterfaceSelector from '$lib/components/inp/InterfaceSelector.svelte';
+  let selectedInterface = $state('');
+  let selectedInterfaceInfo = $state<any>(null);
+  let customFilePaths = $state(['src/lib/utils/customUtils.ts']);
+  function handleInterfaceChange(value: string, interfaceInfo?: any) {
+    selectedInterface = value;
+    selectedInterfaceInfo = interfaceInfo;
+    console.log('Selected interface:', value, interfaceInfo);
+  }
+  function addCustomPath() {
+    const newPath = prompt('Enter a file path to scan:');
+    if (newPath) {
+      customFilePaths = [...customFilePaths, newPath];
+    }
+  }
+
+  function removeCustomPath(index: number) {
+    customFilePaths = customFilePaths.filter((_, i) => i !== index);
+  }
 
   import TabNav from '$lib/components/sct/tabnav.svelte';
   const tabs=[
@@ -72,6 +91,124 @@
     <Complex label="complex" name="c-form" bind:value={myval} items={(obja.map(o=>({value:o.id,label:o.name})))} />
   </div>
   
-
 </div>
+{:else}
+<div class="max-w-4xl mx-auto px-4">
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">Interface Selector Demo</h1>
+    
+    <!-- Basic Interface Selector -->
+    <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Basic Interface Selector</h2>
+      <InterfaceSelector 
+        bind:value={selectedInterface}
+        onchange={handleInterfaceChange}
+        placeholder="Choose an interface..."
+      />
+      
+      {#if selectedInterface}
+        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+          <h3 class="font-medium text-blue-900">Selected Interface: {selectedInterface}</h3>
+          {#if selectedInterfaceInfo}
+            <div class="mt-2 text-sm text-blue-700">
+              <p><strong>File:</strong> {selectedInterfaceInfo.file}</p>
+              <p><strong>Fields:</strong> {selectedInterfaceInfo.fields.join(', ') || 'None'}</p>
+            </div>
+          {/if}
+        </div>
+      {/if}
+    </div>
+    
+    <!-- Grouped Interface Selector -->
+    <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Grouped by File</h2>
+      <InterfaceSelector 
+        groupByFile={true}
+        showFileInfo={true}
+        placeholder="Select from grouped interfaces..."
+      />
+    </div>
+    
+    <!-- Custom File Paths -->
+    <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Custom File Paths</h2>
+      
+      <!-- File Path Management -->
+      <div class="mb-4">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Scanning Files:</h3>
+        <div class="space-y-2">
+          {#each customFilePaths as filePath, index}
+            <div class="flex items-center space-x-2">
+              <span class="text-sm text-gray-600 flex-1">{filePath}</span>
+              <button 
+                onclick={() => removeCustomPath(index)}
+                class="text-red-600 hover:text-red-800 text-sm"
+              >
+                Remove
+              </button>
+            </div>
+          {/each}
+        </div>
+        <button 
+          onclick={addCustomPath}
+          class="mt-2 text-sm text-blue-600 hover:text-blue-800"
+        >
+          + Add File Path
+        </button>
+      </div>
+      
+      <InterfaceSelector 
+        filePaths={customFilePaths}
+        showFileInfo={true}
+        placeholder="Interfaces from custom paths..."
+      />
+    </div>
+    
+    <!-- Compact Version -->
+    <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Compact Version</h2>
+      <InterfaceSelector 
+        showFileInfo={false}
+        includeEmpty={false}
+        class="max-w-md"
+        placeholder="Quick select..."
+      />
+    </div>
+    
+    <!-- Multiple Selectors -->
+    <div class="bg-white rounded-lg shadow-sm border p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Multiple Selectors</h2>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Primary Interface</label>
+          <InterfaceSelector 
+            placeholder="Select primary interface..."
+            emptyText="No primary interface"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Secondary Interface</label>
+          <InterfaceSelector 
+            placeholder="Select secondary interface..."
+            emptyText="No secondary interface"
+            showFileInfo={false}
+          />
+        </div>
+      </div>
+    </div>
+    
+    <!-- Usage Instructions -->
+    <div class="mt-8 bg-gray-100 rounded-lg p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Usage Instructions</h2>
+      <div class="prose text-sm text-gray-700">
+        <p>The InterfaceSelector component automatically scans TypeScript files for exported interfaces. By default, it scans:</p>
+        <ul class="list-disc list-inside mt-2 space-y-1">
+          <li><code>src/lib/utils/customUtils.ts</code></li>
+          <li><code>src/lib/types/*.ts</code></li>
+          <li><code>src/lib/interfaces/*.ts</code></li>
+          <li><code>src/types/*.ts</code></li>
+        </ul>
+        <p class="mt-4">You can customize which files to scan using the <code>filePaths</code> prop.</p>
+      </div>
+    </div>
+  </div>
 {/if}

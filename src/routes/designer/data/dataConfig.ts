@@ -1,5 +1,5 @@
 // src/routes/designer/data/dataConfig.ts
-import { readFileSync, existsSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import yaml from 'yaml';
 import type { DataSource, ObjectDef } from './conf';
@@ -186,6 +186,25 @@ export class DataConfigManager {
   }
 
   /**
+   * Delete object schema definition
+   */
+  deleteObjectDefinition(dataSourceName: string, objectName: string): boolean {
+    const objectPath = join(this.dataDefPath, dataSourceName, `${objectName}.yaml`);
+    
+    if (!existsSync(objectPath)) {
+      return false;
+    }
+
+    try {
+      unlinkSync(objectPath);
+      return true;
+    } catch (error) {
+      console.error(`Error deleting object schema ${objectName}:`, error);
+      return false;
+    }
+  }
+
+  /**
    * Get object schema definition with change tracking
    */
   getObjectWithChanges(objectName: string, dataSourceName: string, newObjectSchema: ObjectDef): {
@@ -242,4 +261,4 @@ export class DataConfigManager {
 }
 
 // Export singleton instance
-export const dataConfigManager = new DataConfigManager();// src/routes/designer/data/dataConfig.ts
+export const dataConfigManager = new DataConfigManager();

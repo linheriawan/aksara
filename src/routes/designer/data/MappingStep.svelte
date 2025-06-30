@@ -108,7 +108,7 @@ async function scanAndDefineFields() {
         type: field.type || 'string',
         required: field.required || false,
         mapping: field.mapping || field.name
-      }));
+      }) as ObjField);
       
       // Auto-select first field as primary key if none selected
       if (!object.primaryKey && object.fields.length > 0) {

@@ -5,6 +5,150 @@ import { join } from 'path';
 import mysql from 'mysql2/promise';
 import { dataConfigManager } from './dataConfig';
 import type { DataSource, ObjectDef } from './conf';
+import { 
+  checkInterfaceExists, 
+  addInterfaceToFile, 
+  removeInterfaceFromFile 
+} from './interfaceUtils';
+import { scanForInterfaces } from '$lib/utils/interfaceScanner';
+
+// Check Interface Status Handler
+export async function handleCheckInterfaceStatus(body: any) {
+  const { objectName } = body;
+  
+  if (!objectName) {
+    return json({ error: 'Missing objectName' }, { status: 400 });
+  }
+
+  try {
+    const status = checkInterfaceExists(objectName);
+    return json(status);
+  } catch (error) {
+    return json({ 
+      error: 'Failed to check interface status',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
+// Generate Interface Handler
+export async function handleGenerateInterface(body: any) {
+  const { objectSchema } = body;
+  
+  if (!objectSchema) {
+    return json({ error: 'Missing objectSchema' }, { status: 400 });
+  }
+
+  try {
+    addInterfaceToFile(objectSchema as ObjectDef);
+    const status = checkInterfaceExists(objectSchema.name);
+    
+    return json({ 
+      success: true, 
+      message: `Interface ${status.interfaceName} generated successfully`,
+      interfaceName: status.interfaceName
+    });
+  } catch (error) {
+    return json({ 
+      error: 'Failed to generate interface',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
+// Remove Interface Handler
+export async function handleRemoveInterface(body: any) {
+  const { objectName } = body;
+  
+  if (!objectName) {
+    return json({ error: 'Missing objectName' }, { status: 400 });
+  }
+
+  try {
+    const removed = removeInterfaceFromFile(objectName);
+    
+    if (removed) {
+      return json({ 
+        success: true, 
+        message: `Interface for ${objectName} removed successfully`
+      });
+    } else {
+      return json({ 
+        success: false, 
+        message: `Interface for ${objectName} not found`
+      }, { status: 404 });
+    }
+  } catch (error) {
+    return json({ 
+      error: 'Failed to remove interface',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
+// Scan Interfaces Handler
+export async function handleScanInterfaces(body: any) {
+  const { filePaths } = body;
+  
+  try {
+    const scanResult = scanForInterfaces(filePaths);
+    
+    return json({
+      success: true,
+      interfaces: scanResult.interfaces.map(iface => ({
+        name: iface.name,
+        file: iface.relativePath,
+        fields: iface.fields || []
+      })),
+      files: scanResult.files.map(file => file.replace(process.cwd(), '').replace(/^[\/\\]/, '')),
+      totalCount: scanResult.interfaces.length,
+      error: scanResult.error
+    });
+  } catch (error) {
+    return json({ 
+      success: false,
+      error: 'Failed to scan interfaces',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
+// Get Interface Details Handler
+export async function handleGetInterfaceDetails(body: any) {
+  const { interfaceName, filePaths } = body;
+  
+  if (!interfaceName) {
+    return json({ error: 'Missing interfaceName' }, { status: 400 });
+  }
+
+  try {
+    const scanResult = scanForInterfaces(filePaths);
+    const interfaceInfo = scanResult.interfaces.find(iface => iface.name === interfaceName);
+    
+    if (!interfaceInfo) {
+      return json({ 
+        success: false, 
+        error: `Interface '${interfaceName}' not found` 
+      }, { status: 404 });
+    }
+    
+    return json({
+      success: true,
+      interface: {
+        name: interfaceInfo.name,
+        file: interfaceInfo.relativePath,
+        source: interfaceInfo.source,
+        fields: interfaceInfo.fields || []
+      }
+    });
+  } catch (error) {
+    return json({ 
+      success: false,
+      error: 'Failed to get interface details',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
 
 // Available Sources Handler
 export async function handleAvailableSources(body: any) {
@@ -173,6 +317,36 @@ export async function handleAnalyzeChanges(body: any) {
     isNew: result.isNew,
     changes: result.changes
   });
+}
+
+// Delete Object Schema Handler
+export async function handleDeleteObject(body: any) {
+  const { dataSourceName, objectName } = body;
+  
+  if (!dataSourceName || !objectName) {
+    return json({ error: 'Missing dataSourceName or objectName' }, { status: 400 });
+  }
+
+  try {
+    const deleted = dataConfigManager.deleteObjectDefinition(dataSourceName, objectName);
+    
+    if (deleted) {
+      return json({ 
+        success: true, 
+        message: `Object schema '${objectName}' deleted successfully` 
+      });
+    } else {
+      return json({ 
+        success: false, 
+        message: `Object schema '${objectName}' not found` 
+      }, { status: 404 });
+    }
+  } catch (error) {
+    return json({ 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Failed to delete object schema'
+    }, { status: 500 });
+  }
 }
 
 // Helper Functions

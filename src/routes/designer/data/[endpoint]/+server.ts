@@ -9,7 +9,13 @@ import {
   handleTableFields,
   handleApiFields,
   handleFileFields,
-  handleAnalyzeChanges
+  handleAnalyzeChanges,
+  handleDeleteObject,
+  handleCheckInterfaceStatus,
+  handleGenerateInterface,
+  handleRemoveInterface,
+  handleScanInterfaces,
+  handleGetInterfaceDetails
 } from '../dataHandlers';
 
 export const GET: RequestHandler = async ({ params, url }) => {
@@ -52,11 +58,42 @@ export const POST: RequestHandler = async ({ params, request }) => {
         return await handleFileFields(body);
       case 'analyze-changes':
         return await handleAnalyzeChanges(body);
+      case 'check-interface-status':
+        return await handleCheckInterfaceStatus(body);
+      case 'generate-interface':
+        return await handleGenerateInterface(body);
+      case 'remove-interface':
+        return await handleRemoveInterface(body);
+      case 'scan-interfaces':
+        return await handleScanInterfaces(body);
+      case 'get-interface-details':
+        return await handleGetInterfaceDetails(body);
       default:
         return json({ error: 'Endpoint not found' }, { status: 404 });
     }
   } catch (error) {
     console.error(`Error in POST ${endpoint}:`, error);
+    return json({ 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+};
+
+export const DELETE: RequestHandler = async ({ params, request }) => {
+  const { endpoint } = params;
+  
+  try {
+    const body = await request.json();
+    
+    switch (endpoint) {
+      case 'delete-object':
+        return await handleDeleteObject(body);
+      default:
+        return json({ error: 'Endpoint not found' }, { status: 404 });
+    }
+  } catch (error) {
+    console.error(`Error in DELETE ${endpoint}:`, error);
     return json({ 
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error'
