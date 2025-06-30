@@ -1,184 +1,297 @@
 <script lang="ts">
-  import IconRenderer from '$lib/components/icons.svelte';
-  import Text from '$lib/components/inp/text.svelte';
-  import Btn from '$lib/components/inp/btn.svelte';
   import SctForm from '$lib/components/sct/form.svelte';
   import TabNav from '$lib/components/sct/tabnav.svelte';
-  import RightPanel from '$lib/components/sct/panelRight.svelte';
+  import PanelRight from '$lib/components/sct/panelRight.svelte';
+  import RouteItem from './RouteItem.svelte';
+  import RouteEditor from './RouteEditor.svelte';
+  import RouteSettings from './RouteSettings.svelte';
+  import RouteStats from './RouteStats.svelte';
+  import * as yaml from 'yaml';
 
-  const tabs=[{ id: 'modules', label: 'Modules' },
-      { id: 'settings', label: 'Settings' },
-      { id: 'profile', label: 'Profile' }];
+  import type { MenuItem, RouteConfig } from './route';
+  import { 
+    listPaths, 
+    getNodeByPath, 
+    reorderItems, 
+    moveItemToParent, 
+    createDefaultMenuItem,
+    RouteManager,
+    RouteConfigManager
+  } from './route';
+
+  const tabs = [
+    { id: 'modules', label: 'Modules' },
+    { id: 'settings', label: 'Settings' },
+    { id: 'profile', label: 'Profile' }
+  ];
   let currentTab = $state('modules');
 
-  import type { MenuItem } from '$lib/types/routes';
-  import initialRoutesData from '$lib/generated/routes.json';
-  import { listPaths, getNodeByPath} from '$lib/utils/route.ts'; 
-
-  let routes: MenuItem[] = $state((JSON.parse(JSON.stringify(initialRoutesData))).routes);
-  
-  let selectedParentPath = $state('');
-  let availablePaths = $state<string[]>([]);
-  let editingIndex = $state<number | undefined>(undefined);
-  let newItem = $state<MenuItem>({ name: '', path: '', icon: '' });
-
-  $effect(() => {
-    availablePaths = listPaths(routes);
+  // Route configuration state
+  let routeConfig: RouteConfig = $state({
+    version: "1.0",
+    lastModified: new Date().toISOString(),
+    routes: []
   });
-  
 
-  function selectItemForEdit(path: string, index: number) {
-    const parent = path ? getNodeByPath(routes, path) : undefined;
-    const target = parent ? parent.children : routes;
-    const item = target?.[index];
-    if (item) {
-      selectedParentPath = path;
-      newItem = { ...item };
-      editingIndex = index;
+  // Selection and editing state
+  let selectedRoute: MenuItem | null = $state(null);
+  let selectedParentPath = $state('');
+  let editingIndex = $state<number | undefined>(undefined);
+  let editingPath = $state<string>('');
+  let newItem = $state<MenuItem>(createDefaultMenuItem('', ''));
+
+  // Drag and drop state
+  let draggedItem: MenuItem | null = null;
+  let draggedIndex: number = -1;
+  let draggedParentPath: string = '';
+  let dropZoneActive = $state(false);
+  
+  // Available objects from your existing Object Definition module
+  let availableObjects = $state(['User', 'Route', 'ObjectDef', 'FormDef', 'OAuthClient', 'UserProfile']);
+
+  // Derived values
+  const availablePaths = $derived([
+    { label: "(root)", value: "" }, 
+    ...listPaths(routeConfig.routes).map(p => ({ label: p, value: p }))
+  ]);
+
+  // Load config on mount
+  $effect(() => {
+    loadRouteConfig();
+  });
+
+  // Initialize page config when type changes
+  $effect(() => {
+    if (newItem.pageConfig.type) {
+      RouteManager.initializePageConfig(newItem, newItem.pageConfig.type);
+    }
+  });
+
+  async function loadRouteConfig() {
+    routeConfig = await RouteConfigManager.load();
+  }
+
+  function selectItemForEdit(route: MenuItem, path: string, index: number) {
+    selectedRoute = route;
+    selectedParentPath = path;
+    editingPath = path;
+    newItem = JSON.parse(JSON.stringify(route));
+    editingIndex = index;
+    
+    // Ensure all required fields exist
+    if (!newItem.pageConfig.title) newItem.pageConfig.title = '';
+    if (!newItem.pageConfig.description) newItem.pageConfig.description = '';
+    if (!newItem.pageConfig.componentPath) newItem.pageConfig.componentPath = '';
+    if (!newItem.pageConfig.objectRef) newItem.pageConfig.objectRef = '';
+    if (!newItem.pageConfig.config) {
+      newItem.pageConfig.config = {};
+    }
+    if (!newItem.pageConfig.config.props) {
+      newItem.pageConfig.config.props = {};
     }
   }
 
   function resetForm() {
-    newItem = { name: '', path: '', icon: '' };
+    selectedRoute = null;
+    newItem = createDefaultMenuItem('', '');
     editingIndex = undefined;
     selectedParentPath = '';
+    editingPath = '';
   }
 
   function remove(path: string, index: number) {
-    const newData = JSON.parse(JSON.stringify(routes));
-    if (path) {
-      // If deleting a child, find the parent
-      const parent = getNodeByPath(newData, path);
-      if (parent && parent.children && parent.children[index]) {
-        parent.children.splice(index, 1); // Remove child
-      } else {
-        console.warn(`Could not find parent or child to delete at path "${path}", index ${index}.`);
-        return;
-      }
-    } else {
-      // If deleting a root level item
-      if (newData[index]) { newData.splice(index, 1);  }
-    }
-    routes = newData;
-    if (editingIndex === index && selectedParentPath === path) {
+    routeConfig = RouteManager.removeItem(routeConfig, path, index);
+    
+    if (editingIndex === index && editingPath === path) {
       resetForm();
     }
   }
-  function save() {
-    // Create a deep copy of the routes data to work on
-    // This ensures Svelte detects all nested changes when `routes` is finally reassigned
-    const newData = JSON.parse(JSON.stringify(routes));
 
-    if (selectedParentPath) {
-      // If adding/editing a child, find the parent node in the new data
-      const parent = getNodeByPath(newData, selectedParentPath);
+  function save() {
+    routeConfig = RouteManager.saveItem(routeConfig, newItem, selectedParentPath, editingIndex);
+    
+    // Update selected route reference
+    if (editingIndex !== undefined) {
+      selectedRoute = newItem;
+    }
+    
+    resetForm();
+    currentTab = 'modules';
+  }
+
+  async function persist() {
+    try {
+      await RouteConfigManager.persist(routeConfig);
+      routeConfig.lastModified = new Date().toISOString();
+    } catch (error) {
+      console.error('Failed to save:', error);
+    }
+  }
+
+  // Drag and Drop Functions
+  function handleDragStart(event: DragEvent, item: MenuItem, index: number, parentPath: string) {
+    if (!event.dataTransfer) return;
+    
+    draggedItem = item;
+    draggedIndex = index;
+    draggedParentPath = parentPath;
+    
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/html', '');
+    
+    const element = event.target as HTMLElement;
+    element.classList.add('dragging');
+  }
+
+  function handleDragEnd(event: DragEvent) {
+    const element = event.target as HTMLElement;
+    element.classList.remove('dragging');
+    dropZoneActive = false;
+    
+    draggedItem = null;
+    draggedIndex = -1;
+    draggedParentPath = '';
+  }
+
+  function handleDragOver(event: DragEvent) {
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    dropZoneActive = true;
+  }
+
+  function handleDragLeave(event: DragEvent) {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = event.clientX;
+    const y = event.clientY;
+    
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      dropZoneActive = false;
+    }
+  }
+
+  function handleDrop(event: DragEvent, targetIndex: number, targetParentPath: string) {
+    event.preventDefault();
+    dropZoneActive = false;
+    
+    if (!draggedItem || draggedIndex === -1) return;
+    if (draggedIndex === targetIndex && draggedParentPath === targetParentPath) return;
+    
+    const newData = JSON.parse(JSON.stringify(routeConfig));
+    
+    if (draggedParentPath === targetParentPath) {
+      const parent = targetParentPath ? getNodeByPath(newData.routes, targetParentPath) : undefined;
+      const items = parent ? parent.children! : newData.routes;
+      
+      const reorderedItems = reorderItems(items, draggedIndex, targetIndex);
+      
       if (parent) {
-        // Ensure parent.children array exists
-        if (!parent.children) { parent.children = []; // Initialize if undefined
-        }
-        if (editingIndex === undefined) { parent.children.push(newItem); // Add new child
-        } else {
-          parent.children[editingIndex] = { ...newItem }; // Update existing child
-        }
+        parent.children = reorderedItems;
       } else {
-        console.warn(`Parent path "${selectedParentPath}" not found. Cannot add/update child.`);
-        return; // Exit if parent not found
+        newData.routes = reorderedItems;
       }
     } else {
-      if (editingIndex === undefined) {
-        newData.push(newItem); // Add new root item
-      } else {
-        newData[editingIndex] = { ...newItem }; // Update existing root item
-      }
+      newData.routes = moveItemToParent(newData.routes, draggedItem.id, targetParentPath, targetIndex);
     }
-    routes = newData;
-    resetForm();
+    
+    newData.lastModified = new Date().toISOString();
+    routeConfig = newData;
   }
-  async function persist() {
-    const res = await fetch('/designer/modules', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({"routes":routes})
-    });
-    const result = await res.json();
-    console.log(result);
+
+  function handleParentPathChange(path: string) {
+    selectedParentPath = path;
+  }
+
+  function handleItemChange(item: MenuItem) {
+    newItem = item;
+  }
+
+  function handleDeleteFromEditor() {
+    remove(editingPath, editingIndex || 0);
   }
 </script>
+
+<style>
+  .drop-zone-active {
+    background-color: rgba(59, 130, 246, 0.1);
+    border: 2px dashed #3b82f6;
+  }
+</style>
 
 <SctForm>
   <svelte:fragment slot="pos">
     <TabNav {tabs} current={currentTab} onSelect={(id) => currentTab = id} />
   </svelte:fragment>
   <div slot="act">
-    <button class="btn-small border rounded-md px-2 hover:bg-blue-300" onclick={persist}>Save</button>
+    <button class="btn-small border rounded-md px-2 hover:bg-blue-300" onclick={persist}>
+      Save Configuration
+    </button>
+    <span class="text-sm text-gray-500 ml-2">
+      Last modified: {new Date(routeConfig.lastModified).toLocaleString()}
+    </span>
   </div>
 
-  <div class="h-full max-w-full overflow-hidden grid-1aa gap-2">
-    <div>
-    {#if currentTab === 'modules'}
-      {#if routes.length === 0}
-        <p>No routes defined yet!</p>
-      {:else}
-        {#each routes as parentRoute, pIndex}
-          <details class="group border p-1 mb-1">
-            <summary class="grid md:grid-cols-4 my-1 cursor-pointer items-center list-none"
-              onclick={() => selectItemForEdit('', pIndex)} >
-              <div>name: {parentRoute.name}</div>
-              <div>path: {parentRoute.path}</div>
-              <div>icon: <IconRenderer name={parentRoute.icon}/></div>
-              <div class="flex justify-end">
-                <span class="transform transition-transform duration-300 group-open:rotate-180">▼</span>
-              </div>
-            </summary>
-            {#if parentRoute.children && parentRoute.children.length > 0}
-              {#each parentRoute.children as childRoute, cIndex (childRoute.name)}
-                <div role="none" class="border grid md:grid-cols-4 my-1 cursor-pointer"
-                  onclick={() => selectItemForEdit(parentRoute.name, cIndex)} >
-                  <div>name: {childRoute.name}</div>
-                  <div>path: {childRoute.path}</div>
-                  <div>icon: <IconRenderer name={childRoute.icon}/></div>
-                  <button class="text-red-500" onclick={(e) =>{e.stopPropagation(); remove(parentRoute.name, cIndex)}}>
-                    Delete
-                  </button>
-                </div>
-              {/each}
-            {:else}
-              <p>No children defined for this parent route.</p>
-            {/if}
-          </details>
-        {/each}
-      {/if}
-    {:else if currentTab === 'settings'}
-      <div>Settings Content</div>
-    {:else if currentTab === 'profile'}
-      <h2 class="text-xl font-semibold mb-2">Profile</h2>
-      <p>This is your profile tab.</p>
-    {/if}
-    </div>
+  <div class="h-full max-w-full overflow-hidden">
     
-    <RightPanel>
-      <div class="border m-1">
-        <div class="bg-blue-300">
-          <h1>{editingIndex === undefined ? 'Add New Route' : 'Edit Route'}</h1>
+    {#if currentTab === 'modules'}
+      <div class="h-full flex gap-1">
+        <!-- Routes List -->
+        <div class="flex-1 flex flex-col">
+          {#if routeConfig.routes.length === 0}
+            <div class="p-4 text-center">
+              <p class="text-gray-500 mb-4">No routes defined yet!</p>
+            </div>
+          {:else}
+            <div role="none" class="flex-1 overflow-scroll" class:drop-zone-active={dropZoneActive}
+                 ondragover={handleDragOver} 
+                 ondragleave={handleDragLeave}>
+              {#each routeConfig.routes.sort((a, b) => a.order - b.order) as route, index (route.id)}
+                <RouteItem 
+                  {route}
+                  {index}
+                  parentPath=""
+                  level={0}
+                  {selectedRoute}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDrop={handleDrop}
+                  onSelect={selectItemForEdit}
+                  onDelete={remove} />
+              {/each}
+            </div>
+          {/if}
         </div>
-        <div class="p-2">
-        <select bind:value={selectedParentPath} class="border px-2 py-1 rounded">
-          <option value="">(root)</option>
-          {#each availablePaths as path}
-            <option value={path}>{path}</option>
-          {/each}
-        </select>
-        <Text id="new_name" name="name" label="Name" bind:value={newItem.name} />
-        <Text id="new_path" name="path" label="Path" bind:value={newItem.path} />
-        <Text id="new_icon" name="icon" label="SVG Icon" bind:value={newItem.icon} />
-
-        <div class="mt-2 flex gap-2">
-          <Btn style="!bg-green-300 hover:!bg-blue-300" clicks={save} label={editingIndex === undefined ? 'Add' : 'Update'}/>
-          <Btn style="!bg-gray-300 hover:!bg-gray-400" clicks={resetForm} label="Reset" />
-        </div>
-        </div>
+        
+        <!-- Right Panel for Basic Route Info -->
+        <PanelRight isPinned={true}>
+          <RouteEditor 
+            {newItem}
+            {selectedParentPath}
+            {editingIndex}
+            {availablePaths}
+            onSave={save}
+            onReset={resetForm}
+            onDelete={editingIndex !== undefined ? handleDeleteFromEditor : undefined}
+            onParentPathChange={handleParentPathChange}
+            onItemChange={handleItemChange} />
+        </PanelRight>
       </div>
-    </RightPanel>
+      
+    {:else if currentTab === 'settings'}
+      <RouteSettings 
+        {selectedRoute}
+        {newItem}
+        {availableObjects}
+        onSave={save}
+        onReset={resetForm}
+        onItemChange={handleItemChange} />
+      
+    {:else if currentTab === 'profile'}
+      <RouteStats 
+        {routeConfig}
+        {availableObjects} />
+    {/if}
   </div>
   
 </SctForm>

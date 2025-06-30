@@ -1,0 +1,155 @@
+version: "1.0"
+lastModified: 2025-06-30T10:20:18.458Z
+routes:
+  - id: sso_001
+    name: SSO
+    path: sso
+    icon: flash
+    order: 0
+    visible: true
+    pageConfig:
+      type: dashboard
+      title: Single Sign-On
+      description: Authentication and authorization management
+      componentPath: $lib/components/pages/SSODashboard.svelte
+      objectRef: User
+      config:
+        widgets:
+          - userCount
+          - activeLogins
+          - recentActivity
+    children:
+      - id: sso_user_001
+        name: User
+        path: sso/user
+        icon: user
+        order: 0
+        visible: true
+        pageConfig:
+          type: listing
+          title: User Management
+          description: Manage user accounts and permissions
+          componentPath: $lib/components/pages/UserListing.svelte
+          objectRef: User
+          config:
+            columns:
+              - username
+              - email
+              - role
+              - status
+              - lastLogin
+            filters:
+              - role
+              - status
+            pageSize: 50
+      - id: sso_client_001
+        name: Client
+        path: sso/client
+        icon: conf
+        order: 1
+        visible: true
+        pageConfig:
+          type: form
+          title: OAuth Clients
+          description: Manage OAuth client applications
+          componentPath: $lib/components/pages/ClientForm.svelte
+          objectRef: OAuthClient
+          config:
+            sections:
+              - basic
+              - scopes
+              - security
+    updatedAt: 2025-06-30T10:20:18.458Z
+  - id: designer_001
+    name: Designer
+    path: designer
+    icon: logo
+    order: 1
+    visible: true
+    pageConfig:
+      type: component
+      title: Design System
+      description: Manage your application design and configuration
+      componentPath: $lib/components/pages/DesignerDashboard.svelte
+      objectRef: Route
+      config:
+        props:
+          theme: default
+    children:
+      - id: designer_data_001
+        name: Data
+        path: designer/data
+        icon: data
+        order: 0
+        visible: true
+        pageConfig:
+          type: component
+          title: Data Management
+          description: Configure data sources and object definitions
+          componentPath: $lib/components/pages/DataManager.svelte
+          objectRef: ObjectDef
+        updatedAt: 2025-06-30T10:20:18.456Z
+      - id: designer_modules_001
+        name: Modules
+        path: designer/modules
+        icon: logo
+        order: 1
+        visible: true
+        pageConfig:
+          type: component
+          title: Route Modules
+          description: Manage application routes and navigation
+          componentPath: $lib/components/pages/RouteManager.svelte
+          objectRef: Route
+        updatedAt: 2025-06-30T10:20:11.404Z
+      - id: designer_form_001
+        name: Form
+        path: designer/form
+        icon: form
+        order: 2
+        visible: true
+        pageConfig:
+          type: form
+          title: Form Builder
+          description: Create and manage forms using object definitions
+          componentPath: $lib/components/pages/FormBuilder.svelte
+          objectRef: FormDef
+          config:
+            sections:
+              - basic
+              - fields
+              - validation
+            layout: tabbed
+        updatedAt: 2025-06-30T10:20:11.404Z
+      - id: designer_component_001
+        name: Component
+        path: designer/component
+        icon: logo
+        order: 3
+        visible: true
+        pageConfig:
+          type: link
+          title: Component Library
+          description: Browse and manage reusable components
+          config:
+            targetType: component
+            target: $lib/components/ComponentLibrary.svelte
+        updatedAt: 2025-06-30T10:20:11.404Z
+    updatedAt: 2025-06-30T10:20:18.458Z
+  - id: account_001
+    name: Account
+    path: acc
+    icon: flash
+    order: 2
+    visible: true
+    pageConfig:
+      type: component
+      title: Account Management
+      description: User account settings and preferences
+      componentPath: $lib/components/pages/AccountManager.svelte
+      objectRef: UserProfile
+      config:
+        props:
+          allowProfileEdit: true
+          showBilling: true
+    updatedAt: 2025-06-30T10:20:18.458Z

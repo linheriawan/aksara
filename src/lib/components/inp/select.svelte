@@ -9,12 +9,11 @@ let {id,name,label,value= $bindable(''),items,change}:{
 }=$props();
 </script>
 <div class="fField">
-<label for="{name}" class="rounded-md px-2 m-1">{ label } </label>
+<label for="{name}">{ label } </label>
 <div>
     <select name={name} bind:value={value} onchange={change} class="border px-2 py-1 rounded">
-        <option value="">{ label }</option>
         {#each items as i}
-        <option value={i.value} selected="{i.isselected ? "selected":""}" >{i.label}</option>
+        <option value={i.value} selected="{i.isselected !== null ? "selected":""}" >{i.label}</option>
         {/each}
     </select>
 </div>

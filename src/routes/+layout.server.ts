@@ -1,7 +1,7 @@
 import type { LayoutServerLoad } from './$types';
 import { parse } from 'cookie';
 import routesData from '$lib/generated/routes.json';
-import type { MenuItem } from '$lib/types/routes';
+import type { MenuItem } from './designer/modules/routes';
 import {APP_NAME}  from '$env/static/private';
 const AppModules: MenuItem[] = routesData.routes;
 export const load: LayoutServerLoad = async ({ request,url }) => {
