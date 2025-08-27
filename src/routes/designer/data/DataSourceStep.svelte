@@ -55,20 +55,21 @@
 
   // Effects
   $effect(() => {
-    if (selectedConfig) {
-      selectedType = selectedConfig.type;
-      configName = selectedConfig.name;
+    const configToUse = selectedConfig || selectedDataSource;
+    if (configToUse) {
+      selectedType = configToUse.type;
+      configName = configToUse.name;
       
       // Update config objects based on type
-      switch (selectedConfig.type) {
+      switch (configToUse.type) {
         case 'mysql':
-          mysqlConfig = { ...selectedConfig.config as DS_DBConf };
+          mysqlConfig = { ...configToUse.config as DS_DBConf };
           break;
         case 'rest':
-          apiConfig = { ...selectedConfig.config as DS_APIConf };
+          apiConfig = { ...configToUse.config as DS_APIConf };
           break;
         case 'filesystem':
-          fileConfig = { ...selectedConfig.config as DS_FSConf };
+          fileConfig = { ...configToUse.config as DS_FSConf };
           break;
       }
     }

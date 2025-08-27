@@ -13,6 +13,9 @@ export interface ObjectDef {
   fields: ObjField[];
   primaryKey: string;
   dataSource: string; // Reference to DataSource name
+  readonly?: boolean;
+  system?: boolean;
+  category?: 'core' | 'default' | 'generated' | 'user';
 }
 
 // MySQL Configuration
@@ -44,6 +47,10 @@ export interface DataSource {
   name: string;
   config: DS_DBConf | DS_APIConf | DS_FSConf;
   schema?: string[]; // For MySQL: table names, for others: available sources
+  readonly?: boolean;
+  system?: boolean;
+  category?: 'core' | 'default' | 'generated' | 'user';
+  description?: string;
 }
 
 export interface StepInfo {

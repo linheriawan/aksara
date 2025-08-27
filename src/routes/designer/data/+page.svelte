@@ -3,6 +3,7 @@
 import { onMount } from 'svelte';
 import { goto } from '$app/navigation';
 import type { DataSource, ObjectDef } from './conf';
+import { parseAssetMetadata, canPerformOperation, getAssetTypeLabel } from '$lib/core/utils/pathProtection';
 
 // State management
 let dataSources = $state<DataSource[]>([]);

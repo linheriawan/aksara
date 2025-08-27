@@ -1,6 +1,11 @@
 <script lang="ts">
 import IconRenderer from '$lib/components/icons.svelte';
+import { goto } from '$app/navigation';
 export let items;
+
+function handleNavigation(path: string) {
+    goto(`/${path}`);
+}
 </script>
 <div class="grid-1n h-80">
     <div class="flex flex-col justify-center border-b">
@@ -9,10 +14,10 @@ export let items;
     <div class="h-full overflow-scroll py-1">
         <div class="grid grid-cols-6 gap-2 mt-2">
 {#each items as item}
-    <a href="/{item.path}" class:dynamic={item.isDynamic} class="!flex !flex-col items-center bg-blue-300 hover:bg-green-300 border border-solid rounded-[10px] block !block p-0">
+    <button onclick={() => handleNavigation(item.path)} class:dynamic={item.isDynamic} class="!flex !flex-col items-center bg-blue-300 hover:bg-green-300 border border-solid rounded-[10px] block !block p-0 w-full">
         <IconRenderer name="{item.icon}"/>
         <span> {item.name} </span>
-    </a>
+    </button>
 {/each}      
         </div>
     </div>

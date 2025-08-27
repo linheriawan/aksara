@@ -1,6 +1,6 @@
 <script lang="ts">
-import '../../app.css';
-import {PnM} from '../../scripts/pnm_elem.js';
+import '../../../app.css';
+import {PnM} from '../../../scripts/pnm_elem.js';
 import SctHead from '$lib/components/sct/head.svelte';
 import SctFoot from '$lib/components/sct/foot.svelte';
 import SctDrawer  from '$lib/components/sct/drawer.svelte';
