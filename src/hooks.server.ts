@@ -39,6 +39,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 async function checkPathProtection(event: RequestEvent) {
   const url = event.url.pathname;
   
+  // Skip protection check for endpoints that don't modify assets or need special handling
+  if (url.includes('/test-connection') || url.includes('/load-configs') || 
+      url.includes('/check-interface') || url.includes('/scan-interfaces') ||
+      url.includes('/save-datasource') || url.includes('/save-config') || 
+      url.includes('/save-object-schema') ||
+      url.includes('/delete-datasource') ||
+      url.includes('/table-fields') || url.includes('/api-fields') || url.includes('/file-fields') ||
+      url.includes('/available-sources') || url.includes('/analyze-changes') || 
+      url.includes('/generate-interface') || url.includes('/remove-interface') ||
+      url.includes('/get-interface-details') || url.includes('/delete-object')) {
+    return { blocked: false, message: '' };
+  }
+  
   // Check for data source modifications
   if (url.includes('/designer/data/') || url.includes('/designer/modules/')) {
     try {

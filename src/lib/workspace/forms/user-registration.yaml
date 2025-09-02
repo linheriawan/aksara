@@ -1,0 +1,33 @@
+id: user-registration
+name: User Registration
+description: Form for new user registration
+version: '1.0'
+createdAt: '2025-01-30T00:00:00.000Z'
+updatedAt: '2025-01-30T00:00:00.000Z'
+schema:
+  - type: Inp
+    props:
+      type: Text
+      label: Full Name
+      name: fullName
+      value: ''
+      required: true
+    _id: fullname_001
+  - type: Inp
+    props:
+      type: Text
+      label: Email Address
+      name: email
+      value: ''
+      required: true
+    _id: email_001
+  - type: Inp
+    props:
+      type: Select
+      label: Role
+      name: role
+      value: ''
+      items:
+        - { label: 'User', value: 'user' }
+        - { label: 'Admin', value: 'admin' }
+    _id: role_001

@@ -1,5 +1,5 @@
 // src/routes/designer/data/dataConfig.ts
-import { readFileSync, existsSync, readdirSync, mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, mkdirSync, writeFileSync, unlinkSync, renameSync, copyFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import yaml from 'yaml';
 import type { DataSource, ObjectDef } from './conf';
@@ -11,7 +11,7 @@ export interface AccessConfig {
 export class DataConfigManager {
   private dataDefPath: string;
 
-  constructor(basePath: string = 'src/lib/datadef') {
+  constructor(basePath: string = 'src/lib/workspace/datadef') {
     this.dataDefPath = join(process.cwd(), basePath);
   }
 
@@ -36,9 +36,52 @@ export class DataConfigManager {
   }
 
   /**
+   * Delete data source configuration and all related object schemas
+   */
+  deleteDataSource(dataSourceName: string): boolean {
+    try {
+      const accessPath = join(this.dataDefPath, '_access.yaml');
+      
+      // Remove from _access.yaml
+      if (existsSync(accessPath)) {
+        const content = readFileSync(accessPath, 'utf8');
+        const existingConfig = yaml.parse(content) || { dataSources: [] };
+        
+        existingConfig.dataSources = existingConfig.dataSources.filter(
+          (ds: DataSource) => ds.name !== dataSourceName
+        );
+        
+        const yamlContent = yaml.stringify(existingConfig);
+        writeFileSync(accessPath, yamlContent, 'utf8');
+      }
+      
+      // Remove data source directory with all object schemas
+      const dsPath = join(this.dataDefPath, dataSourceName);
+      if (existsSync(dsPath)) {
+        const files = readdirSync(dsPath);
+        files.forEach(file => {
+          unlinkSync(join(dsPath, file));
+        });
+        // Note: We don't remove the directory itself to avoid fs.rmdir() complexity
+      }
+      
+      return true;
+    } catch (error) {
+      console.error(`Error deleting data source ${dataSourceName}:`, error);
+      return false;
+    }
+  }
+
+  /**
    * Save data source configuration
    */
-  saveDataSourceConfig(dataSource: DataSource): void {
+  saveDataSourceConfig(dataSource: DataSource, originalName?: string): void {
+    console.log('saveDataSourceConfig called with:', { 
+      dataSource: dataSource.name, 
+      originalName,
+      isRename: originalName && originalName !== dataSource.name
+    });
+    
     // Ensure data definition directory exists
     if (!existsSync(this.dataDefPath)) {
       mkdirSync(this.dataDefPath, { recursive: true });
@@ -58,13 +101,112 @@ export class DataConfigManager {
     }
 
     // Update or add the data source
+    // If originalName is provided and different from current name, handle rename
+    if (originalName && originalName !== dataSource.name) {
+      console.log(`Renaming data source from "${originalName}" to "${dataSource.name}"`);
+      
+      // Remove old data source entry from config
+      const beforeCount = existingConfig.dataSources.length;
+      existingConfig.dataSources = existingConfig.dataSources.filter(
+        (ds: DataSource) => ds.name !== originalName
+      );
+      const afterCount = existingConfig.dataSources.length;
+      console.log(`Removed ${beforeCount - afterCount} data sources from config`);
+      
+      // Move object schema directory if it exists
+      const oldDsPath = join(this.dataDefPath, originalName);
+      const newDsPath = join(this.dataDefPath, dataSource.name);
+      
+      if (existsSync(oldDsPath)) {
+        console.log(`Moving object schemas from "${oldDsPath}" to "${newDsPath}"`);
+        try {
+          // First, rename the directory (like mv command)
+          if (!existsSync(newDsPath)) {
+            renameSync(oldDsPath, newDsPath);
+            console.log(`Successfully renamed directory from "${originalName}" to "${dataSource.name}"`);
+          } else {
+            console.log(`New directory exists, will copy and update files...`);
+            // If new directory exists, we need to process files individually
+            const files = readdirSync(oldDsPath);
+            for (const file of files) {
+              if (file.endsWith('.yaml')) {
+                const oldFilePath = join(oldDsPath, file);
+                const newFilePath = join(newDsPath, file);
+                
+                try {
+                  // Read and update YAML content
+                  const content = readFileSync(oldFilePath, 'utf8');
+                  const data = yaml.parse(content);
+                  
+                  // Update dataSource field if it exists
+                  if (data && data.dataSource === originalName) {
+                    data.dataSource = dataSource.name;
+                    console.log(`Updated dataSource field in ${file} from "${originalName}" to "${dataSource.name}"`);
+                  }
+                  
+                  // Write updated content to new location
+                  const updatedContent = yaml.stringify(data);
+                  writeFileSync(newFilePath, updatedContent, 'utf8');
+                  console.log(`Moved and updated ${file}`);
+                } catch (fileError) {
+                  console.error(`Error processing ${file}:`, fileError);
+                  // Fallback to simple copy if YAML parsing fails
+                  copyFileSync(oldFilePath, newFilePath);
+                  console.log(`Fallback: simply copied ${file}`);
+                }
+              } else {
+                // Non-YAML files, just copy
+                copyFileSync(join(oldDsPath, file), join(newDsPath, file));
+                console.log(`Copied non-YAML file: ${file}`);
+              }
+            }
+            // Remove old directory
+            rmSync(oldDsPath, { recursive: true, force: true });
+            console.log(`Removed old directory: ${oldDsPath}`);
+          }
+
+          // Now update YAML contents in the new location (whether renamed or copied)
+          const files = readdirSync(newDsPath);
+          for (const file of files) {
+            if (file.endsWith('.yaml')) {
+              const filePath = join(newDsPath, file);
+              
+              try {
+                const content = readFileSync(filePath, 'utf8');
+                const data = yaml.parse(content);
+                
+                // Update dataSource field if it still has the old name
+                if (data && data.dataSource === originalName) {
+                  data.dataSource = dataSource.name;
+                  const updatedContent = yaml.stringify(data);
+                  writeFileSync(filePath, updatedContent, 'utf8');
+                  console.log(`Updated dataSource field in ${file} from "${originalName}" to "${dataSource.name}"`);
+                }
+              } catch (fileError) {
+                console.warn(`Could not update dataSource field in ${file}:`, fileError);
+              }
+            }
+          }
+          
+          console.log(`Successfully moved and updated all object schemas`);
+        } catch (error) {
+          console.error(`Error moving object schemas:`, error);
+          // Continue with the data source rename even if schema move fails
+        }
+      } else {
+        console.log(`No object schema directory found at "${oldDsPath}"`);
+      }
+    }
+
     const existingIndex = existingConfig.dataSources.findIndex(
       (ds: DataSource) => ds.name === dataSource.name
     );
 
     if (existingIndex >= 0) {
+      console.log(`Updating existing data source at index ${existingIndex}`);
       existingConfig.dataSources[existingIndex] = dataSource;
     } else {
+      console.log(`Adding new data source "${dataSource.name}"`);
       existingConfig.dataSources.push(dataSource);
     }
 

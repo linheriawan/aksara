@@ -1,5 +1,5 @@
 <script lang="ts">
-import type {FormElement} from "./utils.ts"
+import type {FormElement} from "$lib/core/schema"
 
 const SELF_CLOSING_TAGS = new Set(['Inp', 'Select', 'input', 'img', 'br', 'hr']);
 

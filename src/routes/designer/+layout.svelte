@@ -1,10 +1,5 @@
 <script lang="ts">
-  import EditorLayout from '$lib/layouts/editorLayout.svelte'; 
+  import DesignerLayout from '$lib/layouts/admin/designer.svelte'; 
   let {data,children}=$props();
 </script>
-
-<EditorLayout {...data.app}>
-  {@render children()}
-</EditorLayout>
-
-
+{@render children()}

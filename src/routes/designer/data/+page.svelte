@@ -4,6 +4,11 @@ import { onMount } from 'svelte';
 import { goto } from '$app/navigation';
 import type { DataSource, ObjectDef } from './conf';
 import { parseAssetMetadata, canPerformOperation, getAssetTypeLabel } from '$lib/core/utils/pathProtection';
+import DataSourceEditor from './DataSourceEditor.svelte';
+import ObjectSchemaEditor from './ObjectSchemaEditor.svelte';
+import Modal from '$lib/components/sct/modal.svelte';
+import Btn from '$lib/components/inp/btn.svelte';
+import {PnM} from '../../../scripts/pnm_elem.js';
 
 // State management
 let dataSources = $state<DataSource[]>([]);
@@ -13,6 +18,13 @@ let error = $state<string | null>(null);
 
 // Interface status tracking
 let interfaceStatuses = $state(new Map<string, { exists: boolean; interfaceName: string; isGenerating?: boolean }>());
+
+// Modal state management
+let editingDataSource = $state<DataSource | null>(null);
+let editingObjectSchema = $state<ObjectDef | null>(null);
+let currentDataSourceForNewObject = $state<DataSource | null>(null);
+let dataSourceEditorRef = $state<any>(null);
+let objectSchemaEditorRef = $state<any>(null);
 
 // Grouped object schemas by data source
 let groupedSchemas = $state(new Map<string, ObjectDef[]>());
@@ -130,16 +142,78 @@ function startWizard() {
   goto('/designer/data/wizard');
 }
 
+function editDataSource(dataSourceName: string) {
+  const dataSource = dataSources.find(ds => ds.name === dataSourceName);
+  if (dataSource) {
+    editingDataSource = dataSource;
+    PnM('.modal-datasource').toggle('show');
+  }
+}
+
+function createDataSource() {
+  editingDataSource = null;
+  PnM('.modal-datasource').toggle('show');
+}
+
 function editObjectSchema(dataSourceName: string, objectName: string) {
-  goto(`/designer/data/wizard?dataSource=${dataSourceName}&object=${objectName}&mode=edit`);
+  const dataSource = dataSources.find(ds => ds.name === dataSourceName);
+  const objectSchema = objectSchemas.find(obj => obj.name === objectName && obj.dataSource === dataSourceName);
+  
+  if (dataSource && objectSchema) {
+    editingObjectSchema = objectSchema;
+    currentDataSourceForNewObject = dataSource;
+    PnM('.modal-objectschema').toggle('show');
+  }
 }
 
 function createObjectSchema(dataSourceName: string) {
-  goto(`/designer/data/wizard?dataSource=${dataSourceName}&mode=create`);
+  const dataSource = dataSources.find(ds => ds.name === dataSourceName);
+  if (dataSource) {
+    editingObjectSchema = null;
+    currentDataSourceForNewObject = dataSource;
+    PnM('.modal-objectschema').toggle('show');
+  }
 }
 
-function editDataSource(dataSourceName: string) {
-  goto(`/designer/data/wizard?dataSource=${dataSourceName}&mode=editSource`);
+function handleDataSourceSave(dataSource: DataSource) {
+  PnM('.modal-datasource').toggle('show');
+  editingDataSource = null;
+  loadDataSourcesAndSchemas(); // Refresh the data
+}
+
+function handleObjectSchemaSave(objectSchema: ObjectDef) {
+  PnM('.modal-objectschema').toggle('show');
+  editingObjectSchema = null;
+  currentDataSourceForNewObject = null;
+  loadDataSourcesAndSchemas(); // Refresh the data
+}
+
+function handleModalClose() {
+  editingDataSource = null;
+  editingObjectSchema = null;
+  currentDataSourceForNewObject = null;
+}
+
+async function deleteDataSource(dataSourceName: string) {
+  if (confirm(`Are you sure you want to delete the data source "${dataSourceName}"? This will also delete all related object schemas.`)) {
+    try {
+      const response = await fetch('/designer/data/delete-datasource', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataSourceName })
+      });
+      
+      if (response.ok) {
+        await loadDataSourcesAndSchemas(); // Refresh the list
+        showSuccessMessage(`Data source "${dataSourceName}" deleted successfully!`);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete data source');
+      }
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to delete data source';
+    }
+  }
 }
 
 async function deleteObjectSchema(dataSourceName: string, objectName: string) {
@@ -218,15 +292,26 @@ function dismissSuccess() {
         <h1 class="text-3xl font-bold text-gray-900">Data Sources & Object Schemas</h1>
         <p class="text-gray-600 mt-2">Manage your data sources and their object schema definitions</p>
       </div>
-      <button 
-        onclick={startWizard}
-        class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-        </svg>
-        <span>Start Configuration Wizard</span>
-      </button>
+      <div class="flex space-x-3">
+        <button 
+          onclick={createDataSource}
+          class="bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition-colors flex items-center space-x-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          <span>Create Data Source</span>
+        </button>
+        <button 
+          onclick={startWizard}
+          class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+          <span>Setup Wizard</span>
+        </button>
+      </div>
     </div>
 
     <!-- Success Message -->
@@ -279,15 +364,26 @@ function dismissSuccess() {
         </svg>
         <h3 class="text-xl font-medium text-gray-900 mb-2">No Data Sources Configured</h3>
         <p class="text-gray-600 mb-6">Get started by configuring your first data source and creating object schemas</p>
-        <button 
-          onclick={startWizard}
-          class="bg-blue-600 text-white px-8 py-3 rounded-md hover:bg-blue-700 transition-colors inline-flex items-center space-x-2"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          <span>Start Configuration Wizard</span>
-        </button>
+        <div class="flex space-x-3 justify-center">
+          <button 
+            onclick={createDataSource}
+            class="bg-green-600 text-white px-8 py-3 rounded-md hover:bg-green-700 transition-colors inline-flex items-center space-x-2"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            <span>Create Data Source</span>
+          </button>
+          <button 
+            onclick={startWizard}
+            class="bg-blue-600 text-white px-8 py-3 rounded-md hover:bg-blue-700 transition-colors inline-flex items-center space-x-2"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            <span>Setup Wizard</span>
+          </button>
+        </div>
       </div>
     {:else}
       <!-- Data Sources Grid -->
@@ -305,16 +401,27 @@ function dismissSuccess() {
                     <p class="text-sm text-gray-600">{getDataSourceDisplayName(dataSource.type)}</p>
                   </div>
                 </div>
-                <button 
-                  onclick={() => editDataSource(dataSource.name)}
-                  class="text-gray-400 hover:text-gray-600 transition-colors"
-                  title="Edit Data Source"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </button>
+                <div class="flex items-center space-x-2">
+                  <button 
+                    onclick={() => editDataSource(dataSource.name)}
+                    class="text-gray-400 hover:text-gray-600 transition-colors"
+                    title="Edit Data Source"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </button>
+                  <button 
+                    onclick={() => deleteDataSource(dataSource.name)}
+                    class="text-red-400 hover:text-red-600 transition-colors"
+                    title="Delete Data Source"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </div>
               
               <!-- Data Source Stats -->
@@ -436,3 +543,66 @@ function dismissSuccess() {
     {/if}
   </div>
 </div>
+
+<!-- Data Source Editor Modal -->
+<Modal id="modal-datasource" act="top" size="lg" clicks={handleModalClose}>
+  {#snippet header()}
+    <h1 class="text-xl font-semibold">
+      {editingDataSource ? 'Edit Data Source' : 'Create Data Source'}
+    </h1>
+  {/snippet}
+  {#snippet footer()}
+    {#if dataSourceEditorRef?.api && dataSourceEditorRef.api.type !== 'filesystem' && dataSourceEditorRef.api.hasValidConfig()}
+      <Btn
+        style="!bg-purple-600 hover:!bg-purple-700 !text-white"
+        clicks={() => dataSourceEditorRef.api.handleTest()}
+        disabled={dataSourceEditorRef.api.testing}
+        label={dataSourceEditorRef.api.testing ? 'Testing...' : 'Test Connection'} />
+    {/if}
+    <Btn
+      style="!bg-blue-600 hover:!bg-blue-700 !text-white"
+      clicks={() => dataSourceEditorRef?.api?.handleSave()}
+      disabled={!dataSourceEditorRef?.api || !dataSourceEditorRef.api.isValid || dataSourceEditorRef.api.saving}
+      label={dataSourceEditorRef?.api?.saving ? 'Saving...' : editingDataSource ? 'Update Data Source' : 'Create Data Source'} />
+  {/snippet}
+  <DataSourceEditor 
+    bind:this={dataSourceEditorRef}
+    dataSource={editingDataSource}
+    onSave={handleDataSourceSave} />
+</Modal>
+
+<!-- Object Schema Editor Modal -->
+<Modal id="modal-objectschema" act="top" size="xl" clicks={handleModalClose}>
+  {#snippet header()}
+    <div>
+      <h1 class="text-xl font-semibold">
+        {editingObjectSchema ? 'Edit Object Schema' : 'Create Object Schema'}
+      </h1>
+      {#if currentDataSourceForNewObject}
+        <div class="text-sm text-gray-600 mt-1 flex items-center space-x-3">
+          <span>Data Source: <strong>{currentDataSourceForNewObject.name}</strong> ({currentDataSourceForNewObject.type.toUpperCase()})</span>
+          {#if currentDataSourceForNewObject.type === 'filesystem'}
+            <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
+              {currentDataSourceForNewObject.config.format.toUpperCase()}
+            </span>
+            <span class="text-gray-500">• {currentDataSourceForNewObject.config.basePath}</span>
+          {/if}
+        </div>
+      {/if}
+    </div>
+  {/snippet}
+  {#snippet footer()}
+    <Btn
+      style="!bg-blue-600 hover:!bg-blue-700 !text-white"
+      clicks={() => objectSchemaEditorRef?.api?.handleSave()}
+      disabled={!objectSchemaEditorRef?.api || !objectSchemaEditorRef.api.isValid || objectSchemaEditorRef.api.saving}
+      label={objectSchemaEditorRef?.api?.saving ? 'Saving...' : editingObjectSchema ? 'Update Schema' : 'Create Schema'} />
+  {/snippet}
+  {#if currentDataSourceForNewObject}
+    <ObjectSchemaEditor 
+      bind:this={objectSchemaEditorRef}
+      objectSchema={editingObjectSchema}
+      dataSource={currentDataSourceForNewObject}
+      onSave={handleObjectSchemaSave} />
+  {/if}
+</Modal>

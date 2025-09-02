@@ -1,14 +1,14 @@
 source: girls.json
 fields:
   - name: id
-    type: number
+    type: date
     required: false
     mapping: id
-  - name: Name
+  - name: name
     type: string
     required: false
     mapping: name
-  - name: description
+  - name: desc
     type: string
     required: false
     mapping: desc

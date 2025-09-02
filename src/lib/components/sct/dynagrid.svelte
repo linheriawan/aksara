@@ -18,6 +18,7 @@ const {
   data = [] as any[] | ApiConfig,
   title = 'Dynagrid', 
   rowclick = () => {}, 
+  cstBtns = [],
   show = { page: 20, filter: true, conf: true } as ShowConfig  
 } = $props();
 
@@ -27,7 +28,7 @@ const apiConfig = $derived(isApiMode ? data as ApiConfig : null);
 
 let currentPage = $state(1);
 let PerPage = $state(show.page);
-let cstBtns: any[] = [];
+
 
 // API-related state
 let loading = $state(false);

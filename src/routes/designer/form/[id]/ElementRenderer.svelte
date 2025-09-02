@@ -1,7 +1,8 @@
 <!-- ElementRenderer.svelte -->
 <script lang="ts">
-  import type { FormElement } from "./utils.ts";
-  import { getComponent, isPathEqual, NESTABLE_TYPES } from "./utils.ts";
+  import type { FormElement } from "$lib/core/schema";
+  import { getComponent, isNestableComponent } from "$lib/core/components";
+  import { isPathEqual } from "$lib/core/data";
   
   export let node: FormElement;
   export let path: number[];
@@ -14,7 +15,7 @@
   export let selectElement: (path: number[]) => void;
   
   $: isSelected = isPathEqual(selectedPath, path);
-  $: canNest = NESTABLE_TYPES.has(node.type);
+  $: canNest = isNestableComponent(node.type);
   $: Component = getComponent(node.type);
 </script>
 

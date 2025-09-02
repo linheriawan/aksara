@@ -5,6 +5,9 @@ import {
   handleAvailableSources,
   handleLoadConfigs,
   handleSaveConfig,
+  handleSaveObjectSchema,
+  handleSaveDataSource,
+  handleDeleteDataSource,
   handleTestConnection,
   handleTableFields,
   handleApiFields,
@@ -15,7 +18,9 @@ import {
   handleGenerateInterface,
   handleRemoveInterface,
   handleScanInterfaces,
-  handleGetInterfaceDetails
+  handleGetInterfaceDetails,
+  handleGetDataSources,
+  handleGetObjects
 } from '../dataHandlers';
 
 export const GET: RequestHandler = async ({ params, url }) => {
@@ -25,6 +30,10 @@ export const GET: RequestHandler = async ({ params, url }) => {
     switch (endpoint) {
       case 'load-configs':
         return await handleLoadConfigs(url);
+      case 'sources':
+        return await handleGetDataSources();
+      case 'objects':
+        return await handleGetObjects();
       default:
         return json({ error: 'Endpoint not found' }, { status: 404 });
     }
@@ -48,6 +57,12 @@ export const POST: RequestHandler = async ({ params, request }) => {
         return await handleAvailableSources(body);
       case 'save-config':
         return await handleSaveConfig(body);
+      case 'save-object-schema':
+        return await handleSaveObjectSchema(body);
+      case 'save-datasource':
+        return await handleSaveDataSource(body);
+      case 'delete-datasource':
+        return await handleDeleteDataSource(body);
       case 'test-connection':
         return await handleTestConnection(body);
       case 'table-fields':

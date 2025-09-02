@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { RouteConfig } from './route';
-  import { RouteManager } from './route';
+  import type { RouteConfig } from '$lib/core/routes';
+  import { RouteManager } from '$lib/core/routes';
   
   interface Props {
     routeConfig: RouteConfig;

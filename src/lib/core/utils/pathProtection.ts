@@ -15,9 +15,9 @@ export const READONLY_PATHS = [
 ] as const;
 
 export const EDITABLE_PATHS = [
-  '/src/lib/datadef',      // User configurations (your current work)
-  '/src/lib/generated',    // Auto-generated content
-  '/src/lib/workspace'     // Future user workspace
+  '/src/lib/workspace',    // User configurations (moved from datadef)
+  '/src/lib/generated',    // Auto-generated content  
+  '/src/lib/runtime'       // Compiled runtime content
 ] as const;
 
 /**

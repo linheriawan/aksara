@@ -58,7 +58,7 @@
   show={{page:10,filter:true,conf:true}} />
 <br/>
 <Dynagrid
-  data={{apiurl:"http://localhost:5173/api/mock/cars"}}
+  data={{apiurl:"http://localhost:8000/api/mock/cars"}}
   title="server Cars"
   rowclick={handleRowClick}
   show={{page:10,filter:true,conf:true}} />

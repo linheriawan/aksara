@@ -155,8 +155,9 @@ async function handleDataSourceComplete(config: DataSource) {
     objects = [];
   }
   
-  // If we're editing data source only, go back to dashboard
-  if (mode === 'editSource') {
+  // Redirect edit modes to use dedicated editors
+  if (mode === 'editSource' || mode === 'edit') {
+    console.log('Edit modes should use dedicated editors from the main dashboard');
     goto('/designer/data');
     return;
   }
@@ -285,11 +286,19 @@ function goBackToDashboard() {
         </button>
         <div>
           <h1 class="text-3xl font-bold text-gray-900">
-            {mode === 'edit' ? 'Edit Object Schema' : mode === 'editSource' ? 'Edit Data Source' : 'Data Configuration Wizard'}
+            {mode === 'edit' ? 'Edit Object Schema' : mode === 'editSource' ? 'Edit Data Source' : 'Complete Setup Wizard'}
           </h1>
           <p class="text-gray-600">
-            {mode === 'edit' ? `Editing: ${objectParam}` : mode === 'editSource' ? `Editing: ${dataSourceParam}` : 'Configure your data sources and object schemas'}
+            {mode === 'edit' ? `Editing: ${objectParam}` : mode === 'editSource' ? `Editing: ${dataSourceParam}` : 'Set up a complete data source with object schemas from scratch'}
           </p>
+          {#if mode === 'create'}
+            <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p class="text-sm text-blue-800">
+                <strong>💡 Tip:</strong> This wizard guides you through creating a complete data configuration. 
+                For editing individual components, use the dedicated editors from the main dashboard.
+              </p>
+            </div>
+          {/if}
         </div>
       </div>
     </div>

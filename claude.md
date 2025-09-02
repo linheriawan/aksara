@@ -12,10 +12,16 @@ it will have optional integration to other api project.
 ## DO
 - make new function that is efficient reuseable
 - if needed DEBUG log should be minimal
+- use already created reusable component in src/lib/components (adjust it if needed)
+- use already created reusable layout and its component in src/lib/components/sct (adjust it if needed)
+   ex: SctForm placement, title is in slot pos, and action button is in stol act 
+- make sure same UI/UX are implemented 
+- if making new implementation: clean unused files, make sure other implementation use latest code
 
 ## Dont
 - make massive comments and console.log on the code
-- make redundant function
+- make redundant function, components, library
+- use native html element or creating duplicate components
 
 # Architecture
 
@@ -62,8 +68,7 @@ src/lib/
 
 ### 🔧 **Admin Layouts** (`src/lib/layouts/admin/`)
 **For system administrators and designers:**
-- **designer** - Modern admin panel for /designer routes (default admin)
-- **editor** - Legacy editor layout (if needed)
+- **editor** - Editor layout for /designer routes (default admin)
 
 ### 👤 **End-User Layouts** (`src/lib/layouts/app/`) 
 **For application end-users:**

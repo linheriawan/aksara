@@ -1,7 +1,7 @@
 import type { LayoutServerLoad } from './$types';
 import { parse } from 'cookie';
-import routesData from '$lib/generated/routes.json';
-import type { MenuItem } from './designer/modules/route';
+import routesData from '$lib/runtime/routes.json';
+import type { MenuItem } from '$lib/core/routes';
 import {APP_NAME}  from '$env/static/private';
 const AppModules: MenuItem[] = routesData.routes;
 export const load: LayoutServerLoad = async ({ request, url }) => {
@@ -21,7 +21,7 @@ export const load: LayoutServerLoad = async ({ request, url }) => {
   
   const info = {
     name: APP_NAME,
-    user: "+Uname+"
+    user: "Developer" // TODO: Replace with actual user data
   }
   
   return { 

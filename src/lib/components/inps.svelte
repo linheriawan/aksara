@@ -3,11 +3,13 @@
   let {
     value = $bindable(), 
     input,
+    change,
     keyup,
     ...props
   }: {
     value?: string;
-    input?: (e: CustomEvent) => void;
+    input?: (e: Event) => void;
+    change?: (e: Event) => void;
     keyup?: (e: Event) => void;
     [key: string]: any;
   } = $props();
@@ -36,9 +38,8 @@
   function handleInput(e: Event) {
     const target = e.target as HTMLInputElement;
     value = target.value;
-    // Create a custom event with the new value in detail
-    const customEvent = new CustomEvent('input', { detail: value });
-    input?.(customEvent);
+    // Pass the original event so e.target.value works correctly
+    input?.(e);
   }
   
   function handleKeyup(e: Event) {
@@ -58,6 +59,7 @@
     {...props} 
     bind:value={value} 
     keyup={handleKeyup}
-    input={handleInput} 
+    input={handleInput}
+    change={change}
   />
 {/if}

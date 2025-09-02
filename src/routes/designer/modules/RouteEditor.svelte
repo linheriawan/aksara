@@ -2,8 +2,8 @@
   import Text from '$lib/components/inp/text.svelte';
   import Btn from '$lib/components/inp/btn.svelte';
   import Inps from '$lib/components/inps.svelte';
-  import type { MenuItem } from './route';
-  import { RouteManager } from './route';
+  import type { MenuItem } from '$lib/core/routes';
+  import { RouteManager } from '$lib/core/routes';
   
   interface Props {
     newItem: MenuItem;
@@ -41,17 +41,21 @@
   }
 </script>
 
-<div class="p-3 space-y-3">
-  <h3 class="font-semibold">
-    {editingIndex === undefined ? 'Add New Route' : 'Edit Route'}
-  </h3>
+<div class="h-full flex flex-col">
+  <div class="border-b border-gray-200 p-3">
+    <h3 class="font-medium text-sm text-gray-900">
+      {editingIndex === undefined ? 'Add New Route' : 'Edit Route'}
+    </h3>
+  </div>
+  
+  <div class="flex-1 overflow-y-auto p-3 space-y-3">
   
   <Inps 
     type="select" 
     label="Parent Module" 
     value={selectedParentPath}
     items={availablePaths}
-    onchange={(value) => onParentPathChange(value)} />
+    change={(value) => onParentPathChange(value)} />
   
   <Text 
     id="new_name" 
@@ -83,20 +87,26 @@
     <label for="visible">Visible in navigation</label>
   </div>
 
-  <div class="flex gap-2 pt-4 border-t">
-    <Btn 
-      style="!bg-green-300 hover:!bg-blue-300" 
-      clicks={onSave} 
-      label={editingIndex === undefined ? 'Add' : 'Update'} />
-    <Btn 
-      style="!bg-gray-300 hover:!bg-gray-400" 
-      clicks={onReset} 
-      label="Reset" />
-    {#if editingIndex !== undefined && onDelete}
+  </div>
+  
+  <div class="border-t border-gray-200 p-3">
+    <div class="flex flex-col gap-2">
       <Btn 
-        style="!bg-red-300 hover:!bg-red-400" 
-        clicks={onDelete} 
-        label="Delete" />
-    {/if}
+        style="!bg-blue-600 hover:!bg-blue-700 !text-white text-sm" 
+        clicks={onSave} 
+        label={editingIndex === undefined ? 'Add Route' : 'Update Route'} />
+      <div class="flex gap-2">
+        <Btn 
+          style="!bg-gray-200 hover:!bg-gray-300 !text-gray-700 text-sm flex-1" 
+          clicks={onReset} 
+          label="Reset" />
+        {#if editingIndex !== undefined && onDelete}
+          <Btn 
+            style="!bg-red-100 hover:!bg-red-200 !text-red-700 text-sm flex-1" 
+            clicks={onDelete} 
+            label="Delete" />
+        {/if}
+      </div>
+    </div>
   </div>
 </div>

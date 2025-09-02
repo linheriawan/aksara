@@ -1,6 +1,6 @@
 <script lang="ts">
   import IconRenderer from '$lib/components/icons.svelte';
-  import type { MenuItem } from './route';
+  import type { MenuItem } from '$lib/core/routes';
   
   interface Props {
     route: MenuItem;
@@ -13,6 +13,7 @@
     onDrop?: (event: DragEvent, targetIndex: number, targetParentPath: string) => void;
     onSelect?: (route: MenuItem, path: string, index: number) => void;
     onDelete?: (path: string, index: number) => void;
+    onConfigure?: (route: MenuItem, path: string, index: number) => void;
   }
   
   const {
@@ -25,7 +26,8 @@
     onDragEnd,
     onDrop,
     onSelect,
-    onDelete
+    onDelete,
+    onConfigure
   }: Props = $props();
   
   let isExpanded = $state(true); // Start expanded to show children
@@ -41,6 +43,19 @@
   function handleDrop(event: DragEvent) {
     onDrop?.(event, index, parentPath);
   }
+
+  function handleDropAsChild(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    onDrop?.(event, 0, childPath); // Drop at index 0 of this item's children
+  }
+
+  function handleDragOver(event: DragEvent) {
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+  }
   
   function handleSelect(event: Event) {
     event.stopPropagation();
@@ -51,11 +66,15 @@
     event.stopPropagation();
     onDelete?.(parentPath, index);
   }
+
+  function handleConfigure() {
+    onConfigure?.(route, parentPath, index);
+  }
   
   // Derived values - computed reactively
   const childPath = $derived(parentPath ? `${parentPath}/${route.name}` : route.name);
   const hasChildren = $derived(route.children && route.children.length > 0);
-  const sortedChildren = $derived(route.children ? [...route.children].sort((a, b) => a.order - b.order) : []);
+  const sortedChildren = $derived(route.children ? [...route.children].filter(child => child && child.id).sort((a, b) => a.order - b.order) : []);
   const isSelected = $derived(selectedRoute?.id === route.id);
 </script>
 
@@ -69,6 +88,8 @@
            draggable="true"
            ondragstart={handleDragStart}
            ondragend={handleDragEnd}
+           ondragover={handleDragOver}
+           ondrop={handleDropAsChild}
            onclick={handleSelect}>
         <div class="drag-handle">⋮⋮</div>
         <div>
@@ -94,10 +115,16 @@
             <span class="transform transition-transform duration-300" 
                   class:rotate-180={isExpanded}>▼</span>
           </button>
-          <button class="text-red-500 hover:bg-red-100 px-2 py-1 rounded text-sm" 
-                  onclick={handleDelete}>
-            Delete
-          </button>
+          <div class="flex space-x-2">
+            <button class="text-blue-500 hover:bg-blue-100 px-2 py-1 rounded text-sm" 
+                    onclick={(e) => { e.stopPropagation(); handleConfigure?.(); }}>
+              Configure
+            </button>
+            <button class="text-red-500 hover:bg-red-100 px-2 py-1 rounded text-sm" 
+                    onclick={handleDelete}>
+              Delete
+            </button>
+          </div>
         </div>
       </div>
       
@@ -105,17 +132,20 @@
       {#if isExpanded && hasChildren}
         <div class="ml-4 border-l-2 border-gray-200 pl-2">
           {#each sortedChildren as childRoute, childIndex (childRoute.id)}
-            <svelte:self 
-              route={childRoute}
-              index={childIndex}
-              parentPath={childPath}
-              level={level + 1}
-              {selectedRoute}
-              {onDragStart}
-              {onDragEnd}
-              {onDrop}
-              {onSelect}
-              {onDelete} />
+            {#if childRoute && childRoute.id}
+              <svelte:self 
+                route={childRoute}
+                index={childIndex}
+                parentPath={childPath}
+                level={level + 1}
+                {selectedRoute}
+                {onDragStart}
+                {onDragEnd}
+                {onDrop}
+                {onSelect}
+                {onDelete}
+                {onConfigure} />
+            {/if}
           {/each}
         </div>
       {/if}
@@ -129,6 +159,8 @@
            draggable="true"
            ondragstart={handleDragStart}
            ondragend={handleDragEnd}
+           ondragover={handleDragOver}
+           ondrop={handleDropAsChild}
            onclick={handleSelect}>
         <div class="drag-handle">⋮⋮</div>
         <div>
@@ -146,7 +178,11 @@
             <IconRenderer name={route.icon || 'default'} />
           {/key}
         </div>
-        <div class="flex justify-end">
+        <div class="flex justify-end space-x-2">
+          <button class="text-blue-500 hover:bg-blue-100 px-2 py-1 rounded text-sm" 
+                  onclick={(e) => { e.stopPropagation(); handleConfigure?.(); }}>
+            Configure
+          </button>
           <button class="text-red-500 hover:bg-red-100 px-2 py-1 rounded text-sm" 
                   onclick={handleDelete}>
             Delete
