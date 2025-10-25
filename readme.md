@@ -1,38 +1,185 @@
-# sv
+# Aksara Platform - Frontend
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Fast API & UI Generator Platform built with SvelteKit and Bun.
 
-## Creating a project
+## Quick Start
 
-If you're seeing this, you've probably already done this step. Congrats!
+### Prerequisites
 
-```sh
-# create a new project in the current directory
-npx sv create
+- **Bun** runtime installed
+- **MongoDB** Atlas account or local MongoDB instance
+- **Node.js** 18+ (optional, for compatibility)
 
-# create a new project in my-app
-npx sv create my-app
+### Installation
+
+```bash
+# Install dependencies
+bun install
+
+# Copy environment file
+cp .env.example .env
+
+# Update .env with your MongoDB connection string
 ```
 
-## Developing
+### Initial Setup
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+1. **Configure MongoDB**: Update `MONGODB_URL` and `MONGODB_DB` in `.env`
 
-```sh
-npm run dev
+2. **Initialize Platform**: Run once to set up database, roles, and admin user
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```bash
+# Start dev server
+bun run dev
+
+# In another terminal, initialize the platform
+curl -X POST http://localhost:3000/api/init
 ```
 
-## Building
+This will create:
+- Default roles (admin, developer, viewer)
+- Default admin user (admin@aksara.local / admin123)
+- Database indexes
 
-To create a production version of your app:
+3. **Login**: Navigate to http://localhost:3000/login
 
-```sh
-npm run build
+Default credentials:
+- Email: `admin@aksara.local`
+- Password: `admin123`
+
+## Development
+
+```bash
+# Start development server
+bun run dev
+
+# Build for production
+bun run build
+
+# Preview production build
+bun run preview
+
+# Type checking
+bun run check
 ```
 
-You can preview the production build with `npm run preview`.
+## Project Structure
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```
+src/
+├── lib/
+│   ├── components/          # Svelte components
+│   ├── server/              # Server-side modules
+│   │   ├── database/        # MongoDB connection
+│   │   ├── security/        # Auth, JWT, RBAC
+│   │   └── modules/         # Business logic modules
+│   └── types.ts             # TypeScript types
+├── routes/
+│   ├── +layout.svelte       # Main layout
+│   ├── +page.svelte         # Dashboard
+│   ├── login/               # Login page
+│   └── api/                 # API endpoints
+└── hooks.server.ts          # Authentication middleware
+```
+
+## Environment Variables
+
+See `.env.example` for all available configuration options.
+
+### Required Variables
+
+```env
+# Database
+MONGODB_URL=mongodb+srv://user:pass@cluster.mongodb.net/
+MONGODB_DB=aksaraIS
+
+# Authentication
+JWT_SECRET=your_secret_key_change_in_production
+SESSION_COOKIE_NAME=session
+SESSION_MAX_AGE=86400
+```
+
+## API Endpoints
+
+### Authentication
+
+- `POST /api/auth/login` - Login with email/password
+- `POST /api/auth/logout` - Logout current user
+- `GET /api/health` - Health check
+
+### Initialization
+
+- `POST /api/init` - Initialize platform (run once)
+
+## Phase 1 Features ✅
+
+**Completed:**
+- SvelteKit + Bun setup
+- MongoDB connection with pooling
+- JWT-based authentication
+- RBAC system with roles and permissions
+- Login/logout functionality
+- Health check endpoint
+- Main layout with navigation
+- Database initialization script
+
+## Next Steps
+
+**Phase 2:** Datasource Module
+- Connect to MySQL, PostgreSQL, MongoDB
+- Schema discovery
+- API connector for REST endpoints
+
+**Phase 3:** Object Mapping Module
+- Define business objects
+- Map fields to datasources
+- Data transformation engine
+
+**Phase 4+:** API Publishing, UI Generation, and more
+
+## Technology Stack
+
+- **Runtime:** Bun
+- **Framework:** SvelteKit 2+
+- **Database:** MongoDB Atlas
+- **Authentication:** JWT + bcrypt
+- **TypeScript:** Full type safety
+- **CSS:** Tailwind (to be added)
+
+## Security
+
+- Passwords hashed with bcrypt
+- JWT tokens for session management
+- HTTP-only cookies
+- RBAC authorization
+- Audit logging (Phase 9)
+
+## Troubleshooting
+
+### MongoDB Connection Error
+
+Ensure your IP is whitelisted in MongoDB Atlas and connection string is correct.
+
+### Can't login
+
+Run the initialization endpoint first:
+```bash
+curl -X POST http://localhost:3000/api/init
+```
+
+### Port already in use
+
+Change the `PORT` in `.env` file.
+
+## Documentation
+
+- Main project docs: `../docs/`
+- Architecture: See SAD-*.md files in `../docs/`
+
+## License
+
+Private project for Aksara Initiatives
+
+---
+
+**Generated with ❤️ by Aksara Platform Team**
