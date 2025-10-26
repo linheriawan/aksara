@@ -14,7 +14,7 @@
 <div class="min-h-screen bg-gray-50">
 	<Navigation user={data.user} />
 
-	<main class="container mx-auto px-4 py-8">
+	<main>
 		{@render children?.()}
 	</main>
 </div>

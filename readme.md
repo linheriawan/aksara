@@ -90,7 +90,7 @@ See `.env.example` for all available configuration options.
 
 ```env
 # Database
-MONGODB_URL=mongodb+srv://user:pass@cluster.mongodb.net/
+MONGODB_URL=mongodb+srv://[username]:[password]@[cluster.mongodb.net]/
 MONGODB_DB=aksaraIS
 
 # Authentication

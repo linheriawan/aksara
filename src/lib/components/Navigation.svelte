@@ -3,15 +3,17 @@
 </script>
 
 <nav class="bg-gray-800 text-white">
-	<div class="container mx-auto px-4">
+	<div class="w-full px-4 md:px-6 lg:px-8">
 		<div class="flex justify-between items-center h-16">
 			<div class="flex items-center space-x-8">
 				<a href="/" class="text-xl font-bold">Aksara Platform</a>
 
 				{#if user}
 					<div class="flex space-x-4">
+						<a href="/connections" class="hover:text-gray-300">Connections</a>
 						<a href="/datasources" class="hover:text-gray-300">Datasources</a>
 						<a href="/objects" class="hover:text-gray-300">Objects</a>
+						<a href="/objects/direct" class="hover:text-gray-300 text-sm">Direct Objects</a>
 						<a href="/apis" class="hover:text-gray-300">APIs</a>
 						<a href="/uis" class="hover:text-gray-300">UIs</a>
 						{#if user.roles.includes('admin')}

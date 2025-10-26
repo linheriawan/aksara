@@ -42,19 +42,50 @@ export interface Session {
 	endedAt?: Date;
 }
 
-// Datasource Types
-export interface Datasource {
+// Connection Types (Database Server Credentials)
+export interface Connection {
 	id: string;
-	name: string;
+	name: string; // e.g., "Production MySQL Server"
+	description?: string;
 	type: 'mysql' | 'postgresql' | 'mongodb' | 'rest_api';
-	connection: DatabaseConnection | APIConnection;
-	status: 'active' | 'inactive' | 'error';
+	config: DatabaseConnectionConfig | APIConnectionConfig;
+	status: 'active' | 'inactive' | 'error' | 'pending';
 	createdBy: string;
 	createdAt: Date;
 	updatedAt: Date;
 	lastTestedAt?: Date;
 }
 
+export interface DatabaseConnectionConfig {
+	host: string;
+	port: number;
+	username?: string;
+	password?: string; // Encrypted
+	ssl?: boolean;
+	connectionString?: string; // For MongoDB
+}
+
+export interface APIConnectionConfig {
+	baseUrl: string;
+	authType: 'none' | 'bearer' | 'api_key' | 'oauth2';
+	authConfig?: Record<string, any>;
+	headers?: Record<string, string>;
+}
+
+// Datasource Types (Specific Database on a Connection)
+export interface Datasource {
+	id: string;
+	connectionId: string; // Reference to Connection
+	name: string; // Database name (e.g., "customers_db")
+	displayName?: string; // Optional friendly name (e.g., "Customer Database")
+	type: 'mysql' | 'postgresql' | 'mongodb' | 'rest_api'; // Copied from connection for easier queries
+	createdBy: string;
+	createdAt: Date;
+	updatedAt: Date;
+}
+
+// Legacy types for backward compatibility during migration
+/** @deprecated Use DatabaseConnectionConfig instead */
 export interface DatabaseConnection {
 	host: string;
 	port: number;
@@ -65,6 +96,7 @@ export interface DatabaseConnection {
 	connectionString?: string;
 }
 
+/** @deprecated Use APIConnectionConfig instead */
 export interface APIConnection {
 	baseUrl: string;
 	authType: 'none' | 'bearer' | 'api_key' | 'oauth2';
