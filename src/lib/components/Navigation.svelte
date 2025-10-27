@@ -13,7 +13,6 @@
 						<a href="/connections" class="hover:text-gray-300">Connections</a>
 						<a href="/datasources" class="hover:text-gray-300">Datasources</a>
 						<a href="/objects" class="hover:text-gray-300">Objects</a>
-						<a href="/objects/direct" class="hover:text-gray-300 text-sm">Direct Objects</a>
 						<a href="/apis" class="hover:text-gray-300">APIs</a>
 						<a href="/uis" class="hover:text-gray-300">UIs</a>
 						{#if user.roles.includes('admin')}

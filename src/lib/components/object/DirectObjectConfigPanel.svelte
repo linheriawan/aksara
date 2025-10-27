@@ -44,7 +44,10 @@
 				}
 			},
 			graphql: { enabled: object.publishing?.protocols?.graphql?.enabled || false },
-			grpc: { enabled: object.publishing?.protocols?.grpc?.enabled || false },
+			grpc: {
+				enabled: object.publishing?.protocols?.grpc?.enabled || false,
+				operations: object.publishing?.protocols?.grpc?.operations || ['Create', 'Get', 'List', 'Update', 'Delete']
+			},
 			websocket: { enabled: object.publishing?.protocols?.websocket?.enabled || false },
 			mqtt: { enabled: object.publishing?.protocols?.mqtt?.enabled || false },
 			soap: { enabled: object.publishing?.protocols?.soap?.enabled || false }
@@ -88,6 +91,17 @@
 			config.protocols.rest.methods = methods.filter((m) => m !== method);
 		} else {
 			config.protocols.rest.methods = [...methods, method];
+		}
+	}
+
+	// Toggle gRPC operation
+	function toggleGRPCOperation(operation: string) {
+		const operations = config.protocols.grpc.operations;
+		const index = operations.indexOf(operation);
+		if (index > -1) {
+			config.protocols.grpc.operations = operations.filter((o) => o !== operation);
+		} else {
+			config.protocols.grpc.operations = [...operations, operation];
 		}
 	}
 
@@ -304,8 +318,28 @@
 									<div class="font-medium text-gray-900">gRPC</div>
 									<div class="text-sm text-gray-600">High-performance RPC framework</div>
 								</div>
-								<span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">Phase 5</span>
+								<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Active</span>
 							</label>
+
+							{#if config.protocols.grpc.enabled}
+								<div class="mt-3 pl-8">
+									<div class="text-xs text-gray-600 mb-2 font-medium">RPC Methods:</div>
+									<div class="flex gap-2 flex-wrap">
+										{#each ['Create', 'Get', 'List', 'Update', 'Delete'] as operation}
+											<button
+												onclick={() => toggleGRPCOperation(operation)}
+												class="px-3 py-1 text-xs rounded transition {config.protocols.grpc.operations.includes(
+													operation
+												)
+													? 'bg-indigo-600 text-white'
+													: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+											>
+												{operation}
+											</button>
+										{/each}
+									</div>
+								</div>
+							{/if}
 						</div>
 
 						<!-- WebSocket -->
