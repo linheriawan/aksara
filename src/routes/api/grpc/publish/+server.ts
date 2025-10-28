@@ -22,6 +22,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			return json({ error: 'Object definition not found' }, { status: 404 });
 		}
 
+		// Check if advProto service is healthy
+		const healthCheck = await advProtoClient.healthCheck();
+		if (!healthCheck.healthy) {
+			return json(
+				{
+					error: 'advProto service is not running. Please start it with: cd advProto && go run cmd/server/main.go'
+				},
+				{ status: 503 }
+			);
+		}
+
 		// Generate proto file
 		const protoContent = ProtoGenerator.generateProto(objectDef);
 		const protoFilename = ProtoGenerator.generateProtoFilename(objectDef);
@@ -35,10 +46,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		});
 
 		if (!result.success) {
-			return json({ error: result.error || 'Failed to publish gRPC service' }, { status: 500 });
+			// Do NOT set enabled flag if publish failed
+			return json({ error: result.error || 'Failed to publish gRPC service to advProto' }, { status: 500 });
 		}
 
-		// Save published service metadata to MongoDB
+		// Only save to MongoDB if advProto publish succeeded
+		// Preserve existing operations configuration
+		const existingGrpcConfig = objectDef.publishing?.protocols?.grpc;
+		const operations = existingGrpcConfig?.operations !== undefined
+			? existingGrpcConfig.operations
+			: ['Create', 'Get', 'List', 'Update', 'Delete'];
+
 		await objectService.updateObjectDefinition(
 			objectDefinitionId,
 			{
@@ -47,7 +65,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 					publishedAt: new Date(),
 					serviceUrl: result.serviceUrl,
 					serviceName,
-					protoFilename
+					protoFilename,
+					operations // ✅ Preserve operations configuration
 				}
 			},
 			locals.user.id
@@ -64,6 +83,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		});
 	} catch (error: any) {
 		console.error('Failed to publish gRPC service:', error);
+
+		// Check if it's a network error (advProto not running)
+		if (error.cause?.code === 'ECONNREFUSED' || error.message.includes('fetch failed')) {
+			return json(
+				{
+					error: '❌ Cannot connect to advProto service. Is it running? Start it with: cd advProto && go run cmd/server/main.go'
+				},
+				{ status: 503 }
+			);
+		}
+
 		return json({ error: error.message || 'Internal server error' }, { status: 500 });
 	}
 };

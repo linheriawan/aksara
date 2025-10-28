@@ -24,6 +24,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	// Check if already published
 	const isPublished = objectDef.publishing?.protocols?.grpc?.enabled || false;
 
+	// Get enabled operations from configuration
+	const grpcConfig = objectDef.publishing?.protocols?.grpc;
+	const enabledOperations = grpcConfig?.operations || ['Create', 'Get', 'List', 'Update', 'Delete'];
+
 	return {
 		object: {
 			id: objectDef._id.toString(),
@@ -37,6 +41,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			filename: protoFilename,
 			serviceName
 		},
-		isPublished
+		isPublished,
+		enabledOperations
 	};
 };

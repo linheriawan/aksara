@@ -78,15 +78,27 @@ export class ProtoGenerator {
 		// Main message
 		parts.push(`// ${messageName} represents ${objectDef.displayName || objectDef.name}`);
 		parts.push(`message ${messageName} {`);
-		parts.push('  string id = 1;');
+		parts.push('  string id = 1;  // Record ID (MongoDB ObjectID)');
 
 		let fieldNumber = 2;
+		const reservedNames = ['id', 'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at', 'deleted_by', 'deleted'];
+
 		for (const field of objectDef.fields) {
 			const protoType = this.mapFieldTypeToProto(field);
-			const fieldName = this.toSnakeCase(field.name);
-			const comment = field.description ? `  // ${field.description}` : '';
+			let fieldName = this.toSnakeCase(field.name);
 
-			if (comment) parts.push(comment);
+			// Handle reserved field names by prefixing with 'data_'
+			if (reservedNames.includes(fieldName.toLowerCase())) {
+				fieldName = `data_${fieldName}`;
+			}
+
+			const sourceComment = field.sourceMapping?.datasourceField
+				? `  // Column: ${field.sourceMapping.datasourceField} (${field.type})`
+				: '';
+			const descComment = field.description ? `  // ${field.description}` : '';
+
+			if (sourceComment) parts.push(sourceComment);
+			if (descComment && !sourceComment) parts.push(descComment);
 			parts.push(`  ${protoType} ${fieldName} = ${fieldNumber};`);
 			fieldNumber++;
 		}

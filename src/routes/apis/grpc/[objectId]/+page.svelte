@@ -1,13 +1,20 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
-	let publishing = false;
-	let error = '';
-	let success = false;
-	let publishedServiceUrl = '';
+	let publishing = $state(false);
+	let unpublishing = $state(false);
+	let error = $state('');
+	let success = $state(false);
+	let publishedServiceUrl = $state('');
+	let isBrowser = $state(false);
+
+	onMount(() => {
+		isBrowser = true;
+	});
 
 	async function publishService() {
 		publishing = true;
@@ -42,24 +49,43 @@
 	}
 
 	async function unpublishService() {
+		if (!isBrowser) return;
+
 		if (!confirm('Are you sure you want to unpublish this gRPC service?')) {
 			return;
 		}
 
+		unpublishing = true;
+		error = '';
+
 		try {
-			const response = await fetch(`/api/grpc/services/${data.proto.serviceName}`, {
-				method: 'DELETE'
+			// Use new objectId-based endpoint (more reliable)
+			const response = await fetch(`/api/grpc/unpublish`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ objectId: data.object.id })
 			});
 
+			const result = await response.json();
+
 			if (!response.ok) {
-				const result = await response.json();
 				throw new Error(result.error || 'Failed to unpublish service');
 			}
 
-			// Redirect back
+			// Check if there was a warning (advProto not running but DB updated)
+			if (result.warning) {
+				alert(`⚠️  ${result.error}\n\nThe service has been unpublished from the database.`);
+			} else {
+				alert('✅ Service unpublished successfully!');
+			}
+
+			// Redirect back to objects regardless
 			goto('/objects');
 		} catch (err: any) {
-			alert(`Error: ${err.message}`);
+			error = `Unpublish error: ${err.message}`;
+			alert(`❌ ${error}`);
+		} finally {
+			unpublishing = false;
 		}
 	}
 </script>
@@ -178,9 +204,18 @@
 							{#if data.isPublished}
 								<button
 									on:click={unpublishService}
-									class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+									disabled={unpublishing}
+									class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
 								>
-									Unpublish
+									{#if unpublishing}
+										<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+										</svg>
+										Unpublishing...
+									{:else}
+										🗑️ Unpublish
+									{/if}
 								</button>
 							{:else}
 								<button
@@ -213,24 +248,28 @@
 
 					<!-- Service endpoints preview -->
 					<div class="border-t pt-4">
-						<h4 class="text-sm font-semibold text-gray-700 mb-2">Available Operations</h4>
+						<h4 class="text-sm font-semibold text-gray-700 mb-2">
+							Available Operations
+							<span class="text-xs text-gray-500 font-normal">({data.enabledOperations.length} enabled)</span>
+						</h4>
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-							<div class="px-3 py-2 bg-gray-50 rounded text-xs font-mono">
-								✓ Create{data.object.name}
-							</div>
-							<div class="px-3 py-2 bg-gray-50 rounded text-xs font-mono">
-								✓ Get{data.object.name}
-							</div>
-							<div class="px-3 py-2 bg-gray-50 rounded text-xs font-mono">
-								✓ List{data.object.name}s
-							</div>
-							<div class="px-3 py-2 bg-gray-50 rounded text-xs font-mono">
-								✓ Update{data.object.name}
-							</div>
-							<div class="px-3 py-2 bg-gray-50 rounded text-xs font-mono">
-								✓ Delete{data.object.name}
-							</div>
+							{#each data.enabledOperations as operation}
+								<div class="px-3 py-2 bg-green-50 border border-green-200 rounded text-xs font-mono text-green-900">
+									✓ {operation}{operation === 'List' ? `${data.object.name}s` : data.object.name}
+								</div>
+							{/each}
 						</div>
+
+						{#if data.enabledOperations.length < 5}
+							<div class="mt-3 text-xs text-gray-500">
+								<p>
+									<strong>Note:</strong> Only {data.enabledOperations.length} of 5 operations are enabled.
+									{#if !data.isPublished}
+										You can configure operations when enabling this object.
+									{/if}
+								</p>
+							</div>
+						{/if}
 					</div>
 				</div>
 			</main>

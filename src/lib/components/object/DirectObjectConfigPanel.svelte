@@ -46,7 +46,9 @@
 			graphql: { enabled: object.publishing?.protocols?.graphql?.enabled || false },
 			grpc: {
 				enabled: object.publishing?.protocols?.grpc?.enabled || false,
-				operations: object.publishing?.protocols?.grpc?.operations || ['Create', 'Get', 'List', 'Update', 'Delete']
+				operations: object.publishing?.protocols?.grpc?.operations !== undefined
+				? object.publishing.protocols.grpc.operations
+				: ['Create', 'Get', 'List', 'Update', 'Delete']
 			},
 			websocket: { enabled: object.publishing?.protocols?.websocket?.enabled || false },
 			mqtt: { enabled: object.publishing?.protocols?.mqtt?.enabled || false },
