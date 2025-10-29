@@ -36,7 +36,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		// Generate proto file
 		const protoContent = ProtoGenerator.generateProto(objectDef);
 		const protoFilename = ProtoGenerator.generateProtoFilename(objectDef);
-		const serviceName = `${objectDef.name}Service`;
+		const serviceName = ProtoGenerator.toServiceName(objectDef.name); // Convert to PascalCase + "Service"
 
 		// Send to advProto service
 		const result = await advProtoClient.publishProtoService({

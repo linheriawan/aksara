@@ -325,7 +325,11 @@ message ValidationError {
 			.replace(/^_|_$/g, '');
 	}
 
-	private static toServiceName(name: string): string {
+	/**
+	 * Convert object name to service name (PascalCase + "Service" suffix)
+	 * @public - Used by publish endpoint to generate service name
+	 */
+	static toServiceName(name: string): string {
 		return this.toPascalCase(name) + 'Service';
 	}
 
